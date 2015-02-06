@@ -37,6 +37,7 @@ public class InputManager : MonoBehaviour
 	// Update is called once per frame
 	void Update () 
     {
+        // Move mouse shit to its own class
         Screen.lockCursor = LockCursor;
 
         // Add the current input to be averaged

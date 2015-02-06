@@ -26,11 +26,10 @@ public class SkaterController : MonoBehaviour
     [System.Serializable]
     public class RotationSettings
     {
-        public float YawDegPerSec = 180.0f;
+        public float YawDegPerSec = 360.0f;
         public float PitchDegPerSec = 270.0f;
-        //public float Smooth = 0.3f;
 
-
+        public float MaxPitchRange = 90.0f;
 
         [SerializeField]
         private float yaw;
@@ -38,7 +37,7 @@ public class SkaterController : MonoBehaviour
 
         [SerializeField]
         private float pitch;
-        public float Pitch { get { return pitch; } set { pitch = Mathf.Clamp(value, -180, 180); } }
+        public float Pitch { get { return pitch; } set { pitch = Mathf.Clamp(value, -MaxPitchRange, MaxPitchRange); } }
     }
 
     [System.Serializable]
@@ -131,74 +130,31 @@ public class SkaterController : MonoBehaviour
         grounded = false;
     }
 
+    #endregion
+
+    #region Rotation
+
     private Vector3 targetDirection = Vector3.zero;
     private Vector3 inputV3 = Vector3.zero;
 
-    private void UpdateRotationByVectorsSmoothed(float deltaTime)
-    {
-        inputV3.x = Input.RotationInput.x;
-        inputV3.y = Input.RotationInput.y;
-
-        float yaw = deltaTime * Input.Yaw * Rotation.PitchDegPerSec;
-        float pitch = deltaTime * Input.Pitch * Rotation.YawDegPerSec;
-
-        //Quaternion yawRot = Quaternion.AngleAxis()
-
-        //targetDirection = deltaTime * (tr.forward + inputV3.normalized).normalized;
-
-        //Debug.Log(tr.forward + inputV3.normalized);
-
-        //Vector3 slerped = Vector3.Slerp(tr.forward, targetDirection, 0.5f);
-
-        //rb.rotation = Quaternion.LookRotation(targetDirection,Vector3.up);
-        //rb.MoveRotation();
-    }
-
-    //private void UpdateRotationByVectorsInsta(float deltaTime)
-    //{
-    //    targetDirection = 
-    //}
-
-    private void UpdateRotation(float deltaTime)
-    {
-        float yaw = deltaTime * Input.Yaw * Rotation.PitchDegPerSec;
-        float pitch = deltaTime * Input.Pitch * Rotation.YawDegPerSec;
-
-        tr.RotateAround(tr.position, tr.right, pitch);
-        tr.RotateAround(tr.position, Vector3.up, yaw);
-    }
-
     private void UpdateRotationNew(float deltaTime)
     {
-        float yaw = deltaTime * Input.Yaw * Rotation.PitchDegPerSec;
-        float pitch = deltaTime * Input.Pitch * Rotation.YawDegPerSec;
+        // Calculate the yaw + pitch additions
+        float yaw = deltaTime * Input.Yaw * Rotation.YawDegPerSec;
+        float pitch = deltaTime * -Input.Pitch * Rotation.PitchDegPerSec;
 
-        //tr.rotation = Quaternion.identity;
-
+        // Add degrees to new rotation
         Rotation.Yaw += yaw;
         Rotation.Pitch += pitch;
 
+        // Calculate the rotation in quaternions
         targetRotation = Quaternion.AngleAxis(Rotation.Yaw, Vector3.up);
 
         Vector3 right = targetRotation * Vector3.right;
         targetRotation = Quaternion.AngleAxis(Rotation.Pitch, right) * targetRotation;
 
-        //targetRotation *= Quaternion.AngleAxis(Movement.Pitch, tr.right);
-
-
-        Debug.Log(targetRotation + " P: " + Rotation.Pitch + " y: " + Rotation.Yaw + " right: " + tr.right + " up: " + Vector3.up);
         rb.rotation = (targetRotation);
-
-        //tr.RotateAround(Vector3.zero, tr.right, Movement.Pitch);
-        //tr.RotateAround(Vector3.zero, Vector3.up, Movement.Yaw);
     }
-
-    #region Rotation
-
-    //private Quaternion GroundedRotation()
-    //{
-    //    return Quaternion.Slerp(rb.rotation, targetRotation, Rotation.Smooth);
-    //}
 
     #endregion
 
@@ -241,7 +197,7 @@ public class SkaterController : MonoBehaviour
 
     #endregion
 
-    #endregion
+    #region Collision
 
     public void OnCollisionStay(Collision other)
     {
@@ -249,65 +205,67 @@ public class SkaterController : MonoBehaviour
         grounded = true;
     }
 
-    public void OnMouseDown()
-    {
-        StartCoroutine(TestRotation());
-    }
+    #endregion
 
-    private IEnumerator TestRotation()
-    {
-        Debug.Log("Pitch 1");
-        Input.Yaw = 0;
-        Input.Pitch = 1;
-        yield return new WaitForSeconds(1f);
-        Input.Yaw = 0;
-        Input.Pitch = 0;
-        yield return new WaitForSeconds(.25f);
-        Debug.Log("Pitch -1");
-        Input.Yaw = 0;
-        Input.Pitch = -1;
-        yield return new WaitForSeconds(1f);
-        Input.Yaw = 0;
-        Input.Pitch = 0;
-        yield return new WaitForSeconds(.25f);
+    //public void OnMouseDown()
+    //{
+    //    StartCoroutine(TestRotation());
+    //}
 
-        Debug.Log("Yaw 1");
-        Input.Yaw = 1f;
-        Input.Pitch = 0f;
-        yield return new WaitForSeconds(1f);
-        Input.Yaw = 0;
-        Input.Pitch = 0;
-        yield return new WaitForSeconds(.25f);
-        Debug.Log("Yaw -1");
-        Input.Yaw = -1f;
-        Input.Pitch = 0f;
-        yield return new WaitForSeconds(1f);
-        Input.Yaw = 0;
-        Input.Pitch = 0;
-        yield return new WaitForSeconds(.25f);
+    //private IEnumerator TestRotation()
+    //{
+    //    Debug.Log("Pitch 1");
+    //    Input.Yaw = 0;
+    //    Input.Pitch = 1;
+    //    yield return new WaitForSeconds(1f);
+    //    Input.Yaw = 0;
+    //    Input.Pitch = 0;
+    //    yield return new WaitForSeconds(.25f);
+    //    Debug.Log("Pitch -1");
+    //    Input.Yaw = 0;
+    //    Input.Pitch = -1;
+    //    yield return new WaitForSeconds(1f);
+    //    Input.Yaw = 0;
+    //    Input.Pitch = 0;
+    //    yield return new WaitForSeconds(.25f);
 
-        Debug.Log("Pitch 1");
-        Input.Yaw = 0;
-        Input.Pitch = .5f;
-        yield return new WaitForSeconds(0.5f);
-        Input.Yaw = 0;
-        Input.Pitch = 0;
-        yield return new WaitForSeconds(.25f);
+    //    Debug.Log("Yaw 1");
+    //    Input.Yaw = 1f;
+    //    Input.Pitch = 0f;
+    //    yield return new WaitForSeconds(1f);
+    //    Input.Yaw = 0;
+    //    Input.Pitch = 0;
+    //    yield return new WaitForSeconds(.25f);
+    //    Debug.Log("Yaw -1");
+    //    Input.Yaw = -1f;
+    //    Input.Pitch = 0f;
+    //    yield return new WaitForSeconds(1f);
+    //    Input.Yaw = 0;
+    //    Input.Pitch = 0;
+    //    yield return new WaitForSeconds(.25f);
+
+    //    Debug.Log("Pitch 1");
+    //    Input.Yaw = 0;
+    //    Input.Pitch = .5f;
+    //    yield return new WaitForSeconds(0.5f);
+    //    Input.Yaw = 0;
+    //    Input.Pitch = 0;
+    //    yield return new WaitForSeconds(.25f);
 
 
-        Debug.Log("Yaw 1");
-        Input.Yaw = 1f;
-        Input.Pitch = 0f;
-        yield return new WaitForSeconds(1f);
-        Input.Yaw = 0;
-        Input.Pitch = 0;
-        yield return new WaitForSeconds(.25f);
-        Debug.Log("Yaw -1");
-        Input.Yaw = -1f;
-        Input.Pitch = 0f;
-        yield return new WaitForSeconds(1f);
-        Input.Yaw = 0;
-        Input.Pitch = 0;
-        yield return new WaitForSeconds(.25f);
-    }
+    //    Debug.Log("Yaw 1");
+    //    Input.Yaw = 1f;
+    //    Input.Pitch = 0f;
+    //    yield return new WaitForSeconds(1f);
+    //    Input.Yaw = 0;
+    //    Input.Pitch = 0;
+    //    yield return new WaitForSeconds(.25f);
+    //    Debug.Log("Yaw -1");
+    //    Input.Yaw = -1f;
+    //    Input.Pitch = 0f;
+    //    yield return new WaitForSeconds(1f);
+    //    Input.Yaw = 0;
+    //    Input.Pitch = 0;
+    //    yield return new WaitForSeconds(.25f);
+    //}
 }
