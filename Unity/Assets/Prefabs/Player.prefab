@@ -134,13 +134,13 @@ MonoBehaviour:
     MaxSpeed: 0
     AccelerationPerSecond: 0
   Rotation:
-    YawDegPerSec: 540
-    PitchDegPerSec: 180
+    YawDegPerSec: 360
+    PitchDegPerSec: 360
     MaxPitchRange: 90
     yaw: 0
     pitch: 0
   GravitySetting:
-    GravityMagnitude: 0
+    GravityMagnitude: 3
     Direction: {x: 0, y: -1, z: 0}
 --- !u!114 &11423678
 MonoBehaviour:

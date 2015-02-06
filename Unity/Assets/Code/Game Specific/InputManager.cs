@@ -3,39 +3,34 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
-public class InputManager : MonoBehaviour 
+[System.Serializable]
+public class MouseInput
 {
-    public SkaterController Skater;
-    public float RotatePerSecond = 360;
     public bool LockCursor = false;
 
-    public float MouseSensitivity = 2.0f;
+    public float MouseSensitivity = 3.0f;
 
-    private PlayerCamera Camera;
+    public int SmoothFrames = 3;
 
-    public AnimationCurve Curve;
+    public float MouseX { get; set; }
+    public float MouseY { get; set; }
 
+    private List<float> x;
+    private List<float> y;
 
-    public int SmoothFrames=3;
-
-    public List<float> x;
-    public List<float> y;
-
-
-	// Use this for initialization
-	void Start () 
+    public void Start()
     {
-        Camera = GetComponent<PlayerCamera>();
+        x = new List<float>();
+        y = new List<float>();
+
         for (int i = 0; i < SmoothFrames; i++)
         {
             x.Add(0);
             y.Add(0);
         }
-            
-	}
-	
-	// Update is called once per frame
-	void Update () 
+    }
+
+    public void Update()
     {
         // Move mouse shit to its own class
         Screen.lockCursor = LockCursor;
@@ -49,31 +44,30 @@ public class InputManager : MonoBehaviour
         if (y.Count >= SmoothFrames)
             y.RemoveAt(0);
 
-        float xSmooth = x.Average();
-        float ySmooth = y.Average();
+        MouseX = x.Average() * MouseSensitivity;
+        MouseY = y.Average() * MouseSensitivity;
+    }
+}
 
-        Skater.Input.RotationInput = new Vector2(ySmooth, xSmooth);
+public class InputManager : MonoBehaviour 
+{
+    public SkaterController Skater;
+    public MouseInput Mouse;
 
-        Skater.Input.Pitch = ySmooth * MouseSensitivity;
-        Skater.Input.Yaw = xSmooth * MouseSensitivity;
-        //Skater.Input.
-        //Vector2 mouse = mouseInput();
-        //Debug.Log("["+ySmooth + "," + xSmooth+"]");
-	}
+    private PlayerCamera Camera;
 
-    private Vector2 mouseInput()
+	// Use this for initialization
+	void Start () 
     {
-        Screen.lockCursor = LockCursor;
+        Camera = GetComponent<PlayerCamera>();
+        Mouse.Start(); 
+	}
+	
+    void Update()
+    {
+        Mouse.Update();
 
-        return new Vector2(Input.GetAxis("Mouse X"), Input.GetAxis("Mouse Y"));
-        //Vector3 curDir = Controller.Direction;
-        //Quaternion yRot = Quaternion.AngleAxis(mouseDelta.y * -RotatePerSecond * Time.deltaTime, Controller.Left);
-        //Quaternion xRot = Quaternion.AngleAxis(mouseDelta.x * RotatePerSecond * Time.deltaTime, Controller.Up);
-
-        //Vector3 dir = xRot * yRot * curDir;
-        //Controller.SetDirection(dir);
-        //pc.SetDistanceFromTarget(dir, -5);
-
-        //Debug.Log(Controller.Up);
+        Skater.Input.Pitch = Mouse.MouseY;
+        Skater.Input.Yaw = Mouse.MouseX;
     }
 }

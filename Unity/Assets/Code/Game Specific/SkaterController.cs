@@ -51,8 +51,6 @@ public class SkaterController : MonoBehaviour
     {
         //private Vector2 rotationInput = Vector2.zero;
 
-        public Vector2 RotationInput { get; set; }
-
         /// <summary>
         /// spin around the up axis with Yaw[0-1] * turnSpeed degrees per second
         /// </summary>
