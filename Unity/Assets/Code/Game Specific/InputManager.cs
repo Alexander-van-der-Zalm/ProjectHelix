@@ -21,14 +21,16 @@ public class InputManager : MonoBehaviour
 	// Update is called once per frame
 	void Update () 
     {
-        Skater.Input.RotationInput = mouseInput();
+        //Skater.Input.RotationInput = mouseInput();
+        //Vector2 mouse = mouseInput();
+        //Debug.Log(mouse);
 	}
 
     private Vector2 mouseInput()
     {
         Screen.lockCursor = LockCursor;
-        
-        return new Vector2(Input.GetAxisRaw("Mouse X"), Input.GetAxisRaw("Mouse Y"));
+
+        return new Vector2(Input.GetAxis("Mouse X"), Input.GetAxis("Mouse Y"));
         //Vector3 curDir = Controller.Direction;
         //Quaternion yRot = Quaternion.AngleAxis(mouseDelta.y * -RotatePerSecond * Time.deltaTime, Controller.Left);
         //Quaternion xRot = Quaternion.AngleAxis(mouseDelta.x * RotatePerSecond * Time.deltaTime, Controller.Up);

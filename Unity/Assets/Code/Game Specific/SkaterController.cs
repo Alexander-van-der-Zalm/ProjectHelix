@@ -38,21 +38,20 @@ public class SkaterController : MonoBehaviour
 
     public class InputContainer
     {
-        public Vector2 RotationInput = Vector2.zero;
+        //private Vector2 rotationInput = Vector2.zero;
+
+        public Vector2 RotationInput { get; set; }
+
+        /// <summary>
+        /// spin around the up axis with Yaw[0-1] * turnSpeed degrees per second
+        /// </summary>
+        public float Yaw { get; set; }
+        
+        /// <summary>
+        /// spin around the right axis with Pitch[0-1] * turnSpeed degrees per second
+        /// </summary>
+        public float Pitch { get; set; }
     }
-
-    //private class SmoothRotate
-    //{
-    //    public float Smooth = 0.5f;
-
-    //    private Quaternion target;
-
-    //    public void RotateRigid(Rigidbody rb,Quaternion newRotate)
-    //    {
-    //        target *= newRotate;
-    //        rb.rotation = Quaternion.Slerp(rb.rotation,target,Smooth);
-    //    }
-    //}
 
     #endregion
 
@@ -68,16 +67,10 @@ public class SkaterController : MonoBehaviour
     private Quaternion targetRotation = Quaternion.identity;
     private bool grounded;
 
-    private Vector3 direction { get; set; }
     private float currentSpeed { get { return rb.velocity.magnitude; } }
 
     private Rigidbody rb;
     private Transform tr;
-
-    ////public Vector3 Direction { get { return direction; } }
-    //public Vector3 Up { get { return rb.rotation * Vector3.up; } }
-    //public Vector3 Forward { get { return rb.rotation * Vector3.forward; } }
-    //public Vector3 Left { get { return rb.rotation * Vector3.left; } }
 
     #endregion
 
@@ -103,7 +96,11 @@ public class SkaterController : MonoBehaviour
 
         #region Input
 
-        UpdateRotationTarget(dT);
+        //UpdateRotationTarget(dT);
+        Vector3 rpy = dT * new Vector3(Input.Pitch * -Rotation.RotationYAxisDPS,
+                                    Input.Yaw * Rotation.RotationXAxisDPS, 0);
+
+        rb.rotation *= Quaternion.Euler(rpy);
 
         #endregion
 
@@ -112,11 +109,12 @@ public class SkaterController : MonoBehaviour
         if (grounded)
         {
             rb.velocity = velocity + dT * GroundedAcceleration();
-            rb.rotation = GroundedRotation();
+            //rb.rotation = GroundedRotation();
         }
         else // Airborn
         {
             rb.velocity = velocity + dT * (Gravity() + AirAcceleration()) ;
+            //rb.rotation = GroundedRotation();
         }
 
         #endregion
@@ -127,10 +125,14 @@ public class SkaterController : MonoBehaviour
 
     private void UpdateRotationTarget(float deltaTime)
     {        
-        Quaternion yRot = Quaternion.AngleAxis(Input.RotationInput.y * -Rotation.RotationYAxisDPS * deltaTime, tr.right);
+        Quaternion yRot = Quaternion.AngleAxis(Input.RotationInput.y * Rotation.RotationYAxisDPS * deltaTime, tr.right);
         Quaternion xRot = Quaternion.AngleAxis(Input.RotationInput.x * Rotation.RotationXAxisDPS * deltaTime, tr.up);
 
+        
+
         targetRotation *= xRot * yRot;
+
+        Debug.Log(targetRotation.eulerAngles + " | "+Input.RotationInput);
     }
 
     #region Rotation
@@ -156,7 +158,7 @@ public class SkaterController : MonoBehaviour
 
     private Vector3 GroundedAcceleration()
     {
-        Vector3 d = direction.normalized;
+        Vector3 d = tr.forward;
 
         Vector3 v0 = rb.velocity;
         Vector3 v0n = v0.normalized;
@@ -172,6 +174,8 @@ public class SkaterController : MonoBehaviour
 
         Vector3 v1 = st + gt;
 
+        // Check if going backwards
+
         //Debug.Log(string.Format("a: {0} = st:{1} * d{2} + gr{3} * d",v1,steer,d,grav));
 
         return Vector3.zero;
@@ -181,37 +185,67 @@ public class SkaterController : MonoBehaviour
 
     #endregion
 
-    //#region Input
-
-    //private void RotateTowards(Quaternion targetRot)
-    //{
-    //    targetRotation *= targetRot;
-    //}
-
-    //#endregion
-
     public void OnCollisionStay(Collision other)
     {
         // Check if the right type of surface
         grounded = true;
     }
 
-    //#region OnSurface WIP
+    public void OnMouseDown()
+    {
+        StartCoroutine(TestRotation());
+    }
 
-    //private bool OnSurface()
-    //{
-    //    // Raycast around feet
-    //    bool hit = false;
+    private IEnumerator TestRotation()
+    {
+        //Debug.Log("Yaw");
+        //Input.Yaw = 1;
+        //Input.Pitch = 0;
+        //yield return new WaitForSeconds(0.25f);
+        Debug.Log("Pitch 1");
+        Input.Yaw = 0;
+        Input.Pitch = 1;
+        yield return new WaitForSeconds(0.25f);
+        Input.Yaw = 0;
+        Input.Pitch = 0;
+        yield return new WaitForSeconds(1f);
+        Debug.Log("Pitch -1");
+        Input.Yaw = 0;
+        Input.Pitch = -1;
+        yield return new WaitForSeconds(0.5f);
+        Input.Yaw = 0;
+        Input.Pitch = 0;
+        yield return new WaitForSeconds(1f);
+        Debug.Log("Pitch 1");
+        Input.Yaw = 0;
+        Input.Pitch = 1;
+        yield return new WaitForSeconds(0.25f);
+        Input.Yaw = 0;
+        Input.Pitch = 0;
+        yield return new WaitForSeconds(1f);
 
-    //    Vector3 pos = tr.position + new Vector3(0,RayCastSetting.RayCastOffsetY,0);
 
-    //    //for (int i = 0; i < RayCastSettings.RayCastAmount; i++ )
-    //    //{
-    //    //    Ray ray = new Ray(pos,)
-    //    //}
+        Debug.Log("Pitch 1");
+        Input.Yaw = 0.25f;
+        Input.Pitch = .5f;
+        yield return new WaitForSeconds(0.25f);
 
-    //    return hit;
-    //}
-
-    //#endregion
+        Input.Yaw = 0;
+        Input.Pitch = 0;
+        yield return new WaitForSeconds(1f);
+        //Debug.Log("Pitch -1");
+        //Input.Yaw = 0;
+        //Input.Pitch = -1;
+        //yield return new WaitForSeconds(0.5f);
+        //Input.Yaw = 0;
+        //Input.Pitch = 0;
+        //yield return new WaitForSeconds(1f);
+        //Debug.Log("Pitch 1");
+        //Input.Yaw = 0;
+        //Input.Pitch = 1;
+        //yield return new WaitForSeconds(0.25f);
+        //Input.Yaw = 0;
+        //Input.Pitch = 0;
+        yield return new WaitForSeconds(1f);
+    }
 }
