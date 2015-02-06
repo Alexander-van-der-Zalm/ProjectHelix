@@ -6,10 +6,18 @@ public class SkaterController : MonoBehaviour
     #region class
 
     [System.Serializable]
-    public class MovementSettings
+    public class MovementInfo
     {
         public float MaxSpeed;
         public float AccelerationPerSecond;
+
+        [SerializeField]
+        private float yaw;
+        public float Yaw { get { return yaw; } set { yaw = value; } }// (360 + value) % 360; } }
+
+        [SerializeField]
+        private float pitch;
+        public float Pitch { get { return pitch; } set { pitch = Mathf.Clamp(value, -180, 180); } }
     }
 
     [System.Serializable]
@@ -57,7 +65,7 @@ public class SkaterController : MonoBehaviour
 
     #region Fields
 
-    public MovementSettings Movement;
+    public MovementInfo Movement;
     public RotationSettings Rotation;
     public GravitySettings GravitySetting;
 
@@ -96,7 +104,7 @@ public class SkaterController : MonoBehaviour
 
         #region Input
 
-        UpdateRotationTarget(dT);
+        UpdateRotationNew(dT);
 
         #endregion
 
@@ -119,13 +127,38 @@ public class SkaterController : MonoBehaviour
         grounded = false;
     }
 
-    private void UpdateRotationTarget(float deltaTime)
+    private void UpdateRotation(float deltaTime)
     {
         float yaw = deltaTime * Input.Yaw * Rotation.RotationXAxisDPS;
         float pitch = deltaTime * Input.Pitch * Rotation.RotationYAxisDPS;
 
-        tr.Rotate(tr.right, pitch);
-        tr.RotateAround(Vector3.zero, Vector3.up, yaw);
+        tr.RotateAround(tr.position, tr.right, pitch);
+        tr.RotateAround(tr.position, Vector3.up, yaw);
+    }
+
+    private void UpdateRotationNew(float deltaTime)
+    {
+        float yaw = deltaTime * Input.Yaw * Rotation.RotationXAxisDPS;
+        float pitch = deltaTime * Input.Pitch * Rotation.RotationYAxisDPS;
+
+        //tr.rotation = Quaternion.identity;
+
+        Movement.Yaw += yaw;
+        Movement.Pitch += pitch;
+
+        targetRotation = Quaternion.AngleAxis(Movement.Yaw, Vector3.up);
+
+        Vector3 right = targetRotation * Vector3.right;
+        targetRotation *= Quaternion.AngleAxis(Movement.Pitch, right);
+
+        //targetRotation *= Quaternion.AngleAxis(Movement.Pitch, tr.right);
+                         
+
+        Debug.Log(targetRotation + " P: " + Movement.Pitch + " y: " + Movement.Yaw + " right: " + tr.right + " up: " + Vector3.up);
+        rb.rotation = (targetRotation);
+
+        //tr.RotateAround(Vector3.zero, tr.right, Movement.Pitch);
+        //tr.RotateAround(Vector3.zero, Vector3.up, Movement.Yaw);
     }
 
     #region Rotation

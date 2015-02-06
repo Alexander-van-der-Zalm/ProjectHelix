@@ -47,11 +47,11 @@ public class InputManager : MonoBehaviour
         float xSmooth = x.Average();
         float ySmooth = y.Average();
 
-        //Skater.Input.Pitch = ySmooth;
-        //Skater.Input.Yaw = xSmooth;
+        Skater.Input.Pitch = ySmooth;
+        Skater.Input.Yaw = xSmooth;
         //Skater.Input.
         //Vector2 mouse = mouseInput();
-        //Debug.Log(mouse);
+        //Debug.Log("["+ySmooth + "," + xSmooth+"]");
 	}
 
     private Vector2 mouseInput()

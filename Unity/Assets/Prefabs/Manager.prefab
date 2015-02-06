@@ -44,7 +44,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Skater: {fileID: 0}
   RotatePerSecond: 360
-  LockCursor: 0
+  LockCursor: 1
   Curve:
     serializedVersion: 2
     m_Curve:
@@ -60,6 +60,9 @@ MonoBehaviour:
       tangentMode: 0
     m_PreInfinity: 2
     m_PostInfinity: 2
+  SmoothFrames: 5
+  x: []
+  y: []
 --- !u!114 &11473780
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -102,7 +105,7 @@ MonoBehaviour:
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 173782}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 11b5d259ef34f2b4583ba69a723b033b, type: 3}
   m_Name: 
