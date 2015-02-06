@@ -10,8 +10,6 @@ public class SkaterController : MonoBehaviour
     {
         public float MaxSpeed;
         public float AccelerationPerSecond;
-
-
     }
 
     [System.Serializable]
@@ -40,17 +38,8 @@ public class SkaterController : MonoBehaviour
         public float Pitch { get { return pitch; } set { pitch = Mathf.Clamp(value, -MaxPitchRange, MaxPitchRange); } }
     }
 
-    [System.Serializable]
-    public class RaycastSettings
-    {
-        public float RayCastOffsetY;
-        public int RayCastAmount;
-    }
-
     public class InputContainer
     {
-        //private Vector2 rotationInput = Vector2.zero;
-
         /// <summary>
         /// spin around the up axis with Yaw[0-1] * turnSpeed degrees per second
         /// </summary>
@@ -69,8 +58,6 @@ public class SkaterController : MonoBehaviour
     public MovementInfo Movement;
     public RotationSettings Rotation;
     public GravitySettings GravitySetting;
-
-
     public InputContainer Input;
 
     private Quaternion targetRotation = Quaternion.identity;
@@ -113,7 +100,11 @@ public class SkaterController : MonoBehaviour
 
         if (grounded)
         {
-            rb.velocity = velocity + dT * GroundedAcceleration();
+            Vector3 a = dT * GroundedAcceleration();
+            Debug.Log(string.Format("v: {0} a{1}", velocity, a));
+
+            rb.velocity = velocity + a;
+            //rb.velocity = dT * GroundedAcceleration();
             //rb.rotation = GroundedRotation();
         }
         else // Airborn
@@ -188,9 +179,9 @@ public class SkaterController : MonoBehaviour
 
         // Check if going backwards
 
-        //Debug.Log(string.Format("a: {0} = st:{1} * d{2} + gr{3} * d",v1,steer,d,grav));
+        //Debug.Log(string.Format("a: {0} = st:{1} * d + gr{3} * d |||| d{2}",v1,steer,d,grav));
 
-        return Vector3.zero;
+        return v1;
     }
 
     #endregion
@@ -204,6 +195,8 @@ public class SkaterController : MonoBehaviour
     }
 
     #endregion
+
+    #region Test
 
     //public void OnMouseDown()
     //{
@@ -266,4 +259,6 @@ public class SkaterController : MonoBehaviour
     //    Input.Pitch = 0;
     //    yield return new WaitForSeconds(.25f);
     //}
+
+    #endregion
 }

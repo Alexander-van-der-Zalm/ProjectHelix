@@ -3,6 +3,43 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
+public class InputManager : MonoBehaviour
+{
+    #region Fields
+
+    public SkaterController Skater;
+    public MouseInput Mouse;
+
+    private PlayerCamera Camera;
+
+    #endregion
+
+    #region Start
+
+    // Use this for initialization
+	void Start () 
+    {
+        Camera = GetComponent<PlayerCamera>();
+        Mouse.Start(); 
+	}
+
+    #endregion
+
+    #region Update
+
+    void Update()
+    {
+        Mouse.Update();
+
+        Skater.Input.Pitch = Mouse.MouseY;
+        Skater.Input.Yaw = Mouse.MouseX;
+    }
+
+    #endregion
+}
+
+#region Mouse class
+
 [System.Serializable]
 public class MouseInput
 {
@@ -49,25 +86,4 @@ public class MouseInput
     }
 }
 
-public class InputManager : MonoBehaviour 
-{
-    public SkaterController Skater;
-    public MouseInput Mouse;
-
-    private PlayerCamera Camera;
-
-	// Use this for initialization
-	void Start () 
-    {
-        Camera = GetComponent<PlayerCamera>();
-        Mouse.Start(); 
-	}
-	
-    void Update()
-    {
-        Mouse.Update();
-
-        Skater.Input.Pitch = Mouse.MouseY;
-        Skater.Input.Yaw = Mouse.MouseX;
-    }
-}
+#endregion

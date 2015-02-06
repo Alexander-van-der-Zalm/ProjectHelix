@@ -527,7 +527,7 @@ MonoBehaviour:
     yaw: 0
     pitch: 0
   GravitySetting:
-    GravityMagnitude: 3
+    GravityMagnitude: .5
     Direction: {x: 0, y: -1, z: 0}
 --- !u!114 &792426284
 MonoBehaviour:
@@ -819,6 +819,10 @@ Prefab:
     - target: {fileID: 11423678, guid: 45ff9fd2f3333614c8434baf4c85a8d1, type: 2}
       propertyPath: instantiationId
       value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 11423676, guid: 45ff9fd2f3333614c8434baf4c85a8d1, type: 2}
+      propertyPath: GravitySetting.GravityMagnitude
+      value: .5
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_ParentPrefab: {fileID: 100100000, guid: 45ff9fd2f3333614c8434baf4c85a8d1, type: 2}
