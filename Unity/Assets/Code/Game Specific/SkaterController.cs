@@ -47,7 +47,12 @@ public class SkaterController : MonoBehaviour
     private Rigidbody rb;
     private Transform tr;
 
-    
+    public Vector3 Direction { get { return direction; } }
+
+    public Vector3 Up { get { return rb.rotation * Vector3.up; } }
+    public Vector3 Forward { get { return rb.rotation * Vector3.forward; } }
+    public Vector3 Left { get { return rb.rotation * Vector3.left; } }
+
     #endregion
 
     #region Start
@@ -102,8 +107,21 @@ public class SkaterController : MonoBehaviour
 
         Debug.Log(string.Format("a: {0} = st:{1} * d{2} + gr{3} * d",v1,steer,d,grav));
 
-        return v1;
+        return Vector3.zero;
     }
+
+    #endregion
+
+    #region Input
+
+    #region SetDirection
+
+    public void SetDirection(Vector3 targetDirection)
+    {
+        direction = targetDirection.normalized;
+    }
+
+    #endregion
 
     #endregion
 

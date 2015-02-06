@@ -42,6 +42,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cd3d39be889c09a469152ccc4f2b85ac, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  Controller: {fileID: 0}
+  RotatePerSecond: 360
 --- !u!114 &11473780
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -89,6 +91,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 11b5d259ef34f2b4583ba69a723b033b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  LookAt: {fileID: 0}
 --- !u!1001 &100100000
 Prefab:
   m_ObjectHideFlags: 1
