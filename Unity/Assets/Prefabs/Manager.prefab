@@ -45,6 +45,7 @@ MonoBehaviour:
   Skater: {fileID: 0}
   RotatePerSecond: 360
   LockCursor: 1
+  MouseSensitivity: 2
   Curve:
     serializedVersion: 2
     m_Curve:
@@ -60,7 +61,7 @@ MonoBehaviour:
       tangentMode: 0
     m_PreInfinity: 2
     m_PostInfinity: 2
-  SmoothFrames: 5
+  SmoothFrames: 10
   x: []
   y: []
 --- !u!114 &11473780

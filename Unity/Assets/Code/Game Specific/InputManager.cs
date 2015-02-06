@@ -9,6 +9,8 @@ public class InputManager : MonoBehaviour
     public float RotatePerSecond = 360;
     public bool LockCursor = false;
 
+    public float MouseSensitivity = 2.0f;
+
     private PlayerCamera Camera;
 
     public AnimationCurve Curve;
@@ -35,6 +37,8 @@ public class InputManager : MonoBehaviour
 	// Update is called once per frame
 	void Update () 
     {
+        Screen.lockCursor = LockCursor;
+
         // Add the current input to be averaged
         x.Add(Input.GetAxis("Mouse X"));
         y.Add(Input.GetAxis("Mouse Y"));
@@ -47,8 +51,10 @@ public class InputManager : MonoBehaviour
         float xSmooth = x.Average();
         float ySmooth = y.Average();
 
-        Skater.Input.Pitch = ySmooth;
-        Skater.Input.Yaw = xSmooth;
+        Skater.Input.RotationInput = new Vector2(ySmooth, xSmooth);
+
+        Skater.Input.Pitch = ySmooth * MouseSensitivity;
+        Skater.Input.Yaw = xSmooth * MouseSensitivity;
         //Skater.Input.
         //Vector2 mouse = mouseInput();
         //Debug.Log("["+ySmooth + "," + xSmooth+"]");

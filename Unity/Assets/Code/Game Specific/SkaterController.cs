@@ -11,13 +11,7 @@ public class SkaterController : MonoBehaviour
         public float MaxSpeed;
         public float AccelerationPerSecond;
 
-        [SerializeField]
-        private float yaw;
-        public float Yaw { get { return yaw; } set { yaw = value; } }// (360 + value) % 360; } }
 
-        [SerializeField]
-        private float pitch;
-        public float Pitch { get { return pitch; } set { pitch = Mathf.Clamp(value, -180, 180); } }
     }
 
     [System.Serializable]
@@ -32,9 +26,19 @@ public class SkaterController : MonoBehaviour
     [System.Serializable]
     public class RotationSettings
     {
-        public float RotationYAxisDPS = 180.0f;
-        public float RotationXAxisDPS = 270.0f;
-        public float Smooth = 0.3f;
+        public float YawDegPerSec = 180.0f;
+        public float PitchDegPerSec = 270.0f;
+        //public float Smooth = 0.3f;
+
+
+
+        [SerializeField]
+        private float yaw;
+        public float Yaw { get { return yaw; } set { yaw = value; } }// (360 + value) % 360; } }
+
+        [SerializeField]
+        private float pitch;
+        public float Pitch { get { return pitch; } set { pitch = Mathf.Clamp(value, -180, 180); } }
     }
 
     [System.Serializable]
@@ -105,7 +109,7 @@ public class SkaterController : MonoBehaviour
         #region Input
 
         UpdateRotationNew(dT);
-
+        //UpdateRotationByVectorsSmoothed(dT);
         #endregion
 
         #region Velocity and rotation
@@ -127,10 +131,38 @@ public class SkaterController : MonoBehaviour
         grounded = false;
     }
 
+    private Vector3 targetDirection = Vector3.zero;
+    private Vector3 inputV3 = Vector3.zero;
+
+    private void UpdateRotationByVectorsSmoothed(float deltaTime)
+    {
+        inputV3.x = Input.RotationInput.x;
+        inputV3.y = Input.RotationInput.y;
+
+        float yaw = deltaTime * Input.Yaw * Rotation.PitchDegPerSec;
+        float pitch = deltaTime * Input.Pitch * Rotation.YawDegPerSec;
+
+        //Quaternion yawRot = Quaternion.AngleAxis()
+
+        //targetDirection = deltaTime * (tr.forward + inputV3.normalized).normalized;
+
+        //Debug.Log(tr.forward + inputV3.normalized);
+
+        //Vector3 slerped = Vector3.Slerp(tr.forward, targetDirection, 0.5f);
+
+        //rb.rotation = Quaternion.LookRotation(targetDirection,Vector3.up);
+        //rb.MoveRotation();
+    }
+
+    //private void UpdateRotationByVectorsInsta(float deltaTime)
+    //{
+    //    targetDirection = 
+    //}
+
     private void UpdateRotation(float deltaTime)
     {
-        float yaw = deltaTime * Input.Yaw * Rotation.RotationXAxisDPS;
-        float pitch = deltaTime * Input.Pitch * Rotation.RotationYAxisDPS;
+        float yaw = deltaTime * Input.Yaw * Rotation.PitchDegPerSec;
+        float pitch = deltaTime * Input.Pitch * Rotation.YawDegPerSec;
 
         tr.RotateAround(tr.position, tr.right, pitch);
         tr.RotateAround(tr.position, Vector3.up, yaw);
@@ -138,23 +170,23 @@ public class SkaterController : MonoBehaviour
 
     private void UpdateRotationNew(float deltaTime)
     {
-        float yaw = deltaTime * Input.Yaw * Rotation.RotationXAxisDPS;
-        float pitch = deltaTime * Input.Pitch * Rotation.RotationYAxisDPS;
+        float yaw = deltaTime * Input.Yaw * Rotation.PitchDegPerSec;
+        float pitch = deltaTime * Input.Pitch * Rotation.YawDegPerSec;
 
         //tr.rotation = Quaternion.identity;
 
-        Movement.Yaw += yaw;
-        Movement.Pitch += pitch;
+        Rotation.Yaw += yaw;
+        Rotation.Pitch += pitch;
 
-        targetRotation = Quaternion.AngleAxis(Movement.Yaw, Vector3.up);
+        targetRotation = Quaternion.AngleAxis(Rotation.Yaw, Vector3.up);
 
         Vector3 right = targetRotation * Vector3.right;
-        targetRotation *= Quaternion.AngleAxis(Movement.Pitch, right);
+        targetRotation = Quaternion.AngleAxis(Rotation.Pitch, right) * targetRotation;
 
         //targetRotation *= Quaternion.AngleAxis(Movement.Pitch, tr.right);
-                         
 
-        Debug.Log(targetRotation + " P: " + Movement.Pitch + " y: " + Movement.Yaw + " right: " + tr.right + " up: " + Vector3.up);
+
+        Debug.Log(targetRotation + " P: " + Rotation.Pitch + " y: " + Rotation.Yaw + " right: " + tr.right + " up: " + Vector3.up);
         rb.rotation = (targetRotation);
 
         //tr.RotateAround(Vector3.zero, tr.right, Movement.Pitch);
@@ -163,10 +195,10 @@ public class SkaterController : MonoBehaviour
 
     #region Rotation
 
-    private Quaternion GroundedRotation()
-    {
-        return Quaternion.Slerp(rb.rotation, targetRotation, Rotation.Smooth);
-    }
+    //private Quaternion GroundedRotation()
+    //{
+    //    return Quaternion.Slerp(rb.rotation, targetRotation, Rotation.Smooth);
+    //}
 
     #endregion
 
