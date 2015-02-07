@@ -100,23 +100,110 @@ public class SkaterController : MonoBehaviour
 
         if (grounded)
         {
-            Vector3 a = dT * GroundedAcceleration();
-            Debug.Log(string.Format("v: {0} a{1}", velocity, a));
-
-            rb.velocity = velocity + a;
-            //rb.velocity = dT * GroundedAcceleration();
-            //rb.rotation = GroundedRotation();
+            rb.velocity += dT * (Steer() + SurfGravity() + Braking() + SurfaceSpeed());
         }
         else // Airborn
         {
-            rb.velocity = velocity + dT * (Gravity() + AirAcceleration()) ;
+            rb.velocity += dT * (Gravity() + AirAcceleration());
             //rb.rotation = GroundedRotation();
+            Debug.Log("Airborn");
         }
 
         #endregion
 
         // Reset
         grounded = false;
+    }
+
+    private Vector3 SurfaceSpeed()
+    {
+        return Vector3.zero;
+    }
+
+    [Range(0,1)]
+    public float BreakAngle = 0.45f;
+
+    public float BreakFactorSpeed = 1.0f;
+    public float BreakFactorSlow = 10.0f;
+
+
+    private Vector3 Braking()
+    {
+        Vector3 d = tr.forward.normalized;
+        Vector3 v = rb.velocity;
+        Vector3 vn = v.normalized;
+        float vm = v.magnitude;
+
+        // No need to brake if there is no velocity
+        if(vm == 0)
+        {
+            return Vector3.zero;
+        }
+
+        // Only break if the direction is sufficiently facing away from the velocity
+        float dirAngle = Vector3.Dot(vn,d);
+
+        Debug.Log(string.Format("d: {0} {3} vn: {1} theta {2}", d, vn, dirAngle, d.normalized));
+        if(dirAngle == 0 || Mathf.Abs(dirAngle) > BreakAngle)
+        {
+            return Vector3.zero;
+        }
+
+        // Calculate the break 
+        Debug.Log("Braking");
+
+        // break Angle Factor
+        float ba = dirAngle / BreakAngle;
+
+        // Fast break factor (does the main bulk of the breaking)
+        float fb = vm * BreakFactorSpeed;
+
+        // Slow break factor (practically only works when the velocity is very low)
+        float sb = BreakFactorSlow / vm;
+
+        //Debug.Log(string.Format("d: {0} v: {1} vn: {2} vm: {3} dir: {4} ba: {5} fb {6} sb {7}",d,v,vn,vm,dirAngle,ba,fb,sb));
+        
+        // negative velocity direction * break angle * (fastbreak + slowbreak)
+        return -vn * ba * fb;
+    }
+
+    private Vector3 SurfGravity()
+    {
+        return Gravity();
+        
+        return Vector3.zero;
+        
+        
+    }
+
+    public float SteerPower = 1.0f;
+
+    private Vector3 Steer()
+    {
+        Vector3 d = tr.forward.normalized;
+
+        Vector3 v0 = rb.velocity;
+        Vector3 v0n = v0.normalized;
+
+        // Two steps:
+        // - calculate the new direction
+        // - subtract an equal magnitude from the velocity
+
+        // the dot product of the direction and the velocity
+        // where 0 = perpendicular and 1 = parralel
+        float theta = Vector3.Dot(v0n, d);
+
+        // Check if backwards is a special case
+        if (theta < 0)
+            Debug.Log("Backwards man");
+
+        float steerMagnitude = theta * v0.magnitude * SteerPower;
+
+        Vector3 steer = d * steerMagnitude;
+
+        Vector3 correction = -v0n * steerMagnitude;
+
+        return steer + correction;
     }
 
     #endregion

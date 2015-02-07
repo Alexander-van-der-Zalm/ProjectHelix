@@ -33,6 +33,10 @@ public class InputManager : MonoBehaviour
 
         Skater.Input.Pitch = Mouse.MouseY;
         Skater.Input.Yaw = Mouse.MouseX;
+
+        if (Input.GetKeyDown(KeyCode.Space))
+            Debug.Break();
+        // Todo add camera scroll
     }
 
     #endregion
