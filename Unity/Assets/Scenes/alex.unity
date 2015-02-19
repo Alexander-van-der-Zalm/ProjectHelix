@@ -193,6 +193,14 @@ Prefab:
       propertyPath: Mouse.SmoothFrames
       value: 15
       objectReference: {fileID: 0}
+    - target: {fileID: 11480778, guid: 541fa0afbcb0c42469fbcee75a4525d4, type: 2}
+      propertyPath: OrientationMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 11480778, guid: 541fa0afbcb0c42469fbcee75a4525d4, type: 2}
+      propertyPath: Target
+      value: 
+      objectReference: {fileID: 792426285}
     m_RemovedComponents: []
   m_ParentPrefab: {fileID: 100100000, guid: 541fa0afbcb0c42469fbcee75a4525d4, type: 2}
   m_RootGameObject: {fileID: 266541591}
@@ -229,9 +237,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 11b5d259ef34f2b4583ba69a723b033b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  LookAt: {fileID: 792426285}
+  Target: {fileID: 792426285}
   CameraDistance: 10
   Smooth: .075000003
+  OrientationMode: 1
 --- !u!114 &266541593
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -449,6 +458,7 @@ GameObject:
   - 92: {fileID: 623432381}
   - 124: {fileID: 623432380}
   - 81: {fileID: 623432379}
+  - 45: {fileID: 623432384}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -525,6 +535,14 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 0
+--- !u!45 &623432384
+Skybox:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 623432378}
+  m_Enabled: 1
+  m_CustomSkybox: {fileID: 2100000, guid: 96f304838bf97f64d94c13488f9f039d, type: 2}
 --- !u!1 &792426280
 GameObject:
   m_ObjectHideFlags: 0
@@ -587,7 +605,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Movement:
-    MaxSpeed: 0
+    MaxSpeed: 3
     AccelerationPerSecond: 0
   Rotation:
     YawDegPerSec: 360
@@ -595,13 +613,9 @@ MonoBehaviour:
     MaxPitchRange: 90
     yaw: 0
     pitch: 0
-  GravitySetting:
-    GravityMagnitude: 9.80000019
-    Direction: {x: 0, y: -1, z: 0}
-  BreakAngle: .449999988
-  BreakFactorSpeed: 1
-  BreakFactorSlow: 10
-  SteerPower: 1
+  Gravity:
+    Magnitude: 3
+    direction: {x: 0, y: -1, z: 0}
 --- !u!114 &792426284
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -895,7 +909,23 @@ Prefab:
       objectReference: {fileID: 0}
     - target: {fileID: 11423676, guid: 45ff9fd2f3333614c8434baf4c85a8d1, type: 2}
       propertyPath: GravitySetting.GravityMagnitude
-      value: 9.80000019
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 11423676, guid: 45ff9fd2f3333614c8434baf4c85a8d1, type: 2}
+      propertyPath: Gravity.direction.y
+      value: -1
+      objectReference: {fileID: 0}
+    - target: {fileID: 11423676, guid: 45ff9fd2f3333614c8434baf4c85a8d1, type: 2}
+      propertyPath: Gravity.Magnitude
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 11423676, guid: 45ff9fd2f3333614c8434baf4c85a8d1, type: 2}
+      propertyPath: Movement.AccelerationPerSecond
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 11423676, guid: 45ff9fd2f3333614c8434baf4c85a8d1, type: 2}
+      propertyPath: Movement.MaxSpeed
+      value: 3
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_ParentPrefab: {fileID: 100100000, guid: 45ff9fd2f3333614c8434baf4c85a8d1, type: 2}

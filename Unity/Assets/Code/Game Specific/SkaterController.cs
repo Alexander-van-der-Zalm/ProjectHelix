@@ -15,10 +15,14 @@ public class SkaterController : MonoBehaviour
     [System.Serializable]
     public class GravitySettings
     {
-        public float GravityMagnitude;
-        public Vector3 Direction;
+        public float Magnitude;
 
-        public Vector3 Velocity { get { return GravityMagnitude * Direction; } }
+        [SerializeField]
+        private Vector3 direction;
+
+        public Vector3 Direction { set { direction = value.normalized; } get { return direction.normalized; } }
+
+        public Vector3 Velocity { get { return Magnitude * Direction; } }
     }
 
     [System.Serializable]
@@ -57,7 +61,7 @@ public class SkaterController : MonoBehaviour
 
     public MovementInfo Movement;
     public RotationSettings Rotation;
-    public GravitySettings GravitySetting;
+    public GravitySettings Gravity;
     public InputContainer Input;
 
     private Quaternion targetRotation = Quaternion.identity;
@@ -78,6 +82,8 @@ public class SkaterController : MonoBehaviour
         tr = GetComponent<Transform>();
         if (Input == null)
             Input = new InputContainer();
+
+        //rb.velocity = tr.forward * 10;
 	}
 
     #endregion
@@ -88,130 +94,40 @@ public class SkaterController : MonoBehaviour
 	void FixedUpdate () 
     {
         float dT = Time.fixedDeltaTime;
-        Vector3 velocity = rb.velocity;
-
-        #region Input
-
-        UpdateRotationNew(dT);
-        //UpdateRotationByVectorsSmoothed(dT);
-        #endregion
-
-        #region Velocity and rotation
 
         if (grounded)
         {
-            rb.velocity += dT * (Steer() + SurfGravity() + Braking() + SurfaceSpeed());
+            GroundedRotation(dT);
+            GroundedVelocity(dT);
         }
         else // Airborn
         {
-            rb.velocity += dT * (Gravity() + AirAcceleration());
-            //rb.rotation = GroundedRotation();
             Debug.Log("Airborn");
-        }
 
-        #endregion
+            AirbornRotation(dT);
+            AirbornVelocity(dT);
+        }
 
         // Reset
         grounded = false;
-    }
-
-    private Vector3 SurfaceSpeed()
-    {
-        return Vector3.zero;
-    }
-
-    [Range(0,1)]
-    public float BreakAngle = 0.45f;
-
-    public float BreakFactorSpeed = 1.0f;
-    public float BreakFactorSlow = 10.0f;
-
-
-    private Vector3 Braking()
-    {
-        Vector3 d = tr.forward.normalized;
-        Vector3 v = rb.velocity;
-        Vector3 vn = v.normalized;
-        float vm = v.magnitude;
-
-        // No need to brake if there is no velocity
-        if(vm == 0)
-        {
-            return Vector3.zero;
-        }
-
-        // Only break if the direction is sufficiently facing away from the velocity
-        float dirAngle = Vector3.Dot(vn,d);
-
-        Debug.Log(string.Format("d: {0} {3} vn: {1} theta {2}", d, vn, dirAngle, d.normalized));
-        if(dirAngle == 0 || Mathf.Abs(dirAngle) > BreakAngle)
-        {
-            return Vector3.zero;
-        }
-
-        // Calculate the break 
-        Debug.Log("Braking");
-
-        // break Angle Factor
-        float ba = dirAngle / BreakAngle;
-
-        // Fast break factor (does the main bulk of the breaking)
-        float fb = vm * BreakFactorSpeed;
-
-        // Slow break factor (practically only works when the velocity is very low)
-        float sb = BreakFactorSlow / vm;
-
-        //Debug.Log(string.Format("d: {0} v: {1} vn: {2} vm: {3} dir: {4} ba: {5} fb {6} sb {7}",d,v,vn,vm,dirAngle,ba,fb,sb));
-        
-        // negative velocity direction * break angle * (fastbreak + slowbreak)
-        return -vn * ba * fb;
-    }
-
-    private Vector3 SurfGravity()
-    {
-        return Gravity();
-        
-        return Vector3.zero;
-        
-        
-    }
-
-    public float SteerPower = 1.0f;
-
-    private Vector3 Steer()
-    {
-        Vector3 d = tr.forward.normalized;
-
-        Vector3 v0 = rb.velocity;
-        Vector3 v0n = v0.normalized;
-
-        // Two steps:
-        // - calculate the new direction
-        // - subtract an equal magnitude from the velocity
-
-        // the dot product of the direction and the velocity
-        // where 0 = perpendicular and 1 = parralel
-        float theta = Vector3.Dot(v0n, d);
-
-        // Check if backwards is a special case
-        if (theta < 0)
-            Debug.Log("Backwards man");
-
-        float steerMagnitude = theta * v0.magnitude * SteerPower;
-
-        Vector3 steer = d * steerMagnitude;
-
-        Vector3 correction = -v0n * steerMagnitude;
-
-        return steer + correction;
     }
 
     #endregion
 
     #region Rotation
 
-    private Vector3 targetDirection = Vector3.zero;
-    private Vector3 inputV3 = Vector3.zero;
+    private void AirbornRotation(float dT)
+    {
+        UpdateRotationNew(dT);
+    }
+
+    private void GroundedRotation(float dT)
+    {
+        UpdateRotationNew(dT);
+    }
+
+    //private Vector3 targetDirection = Vector3.zero;
+   // private Vector3 inputV3 = Vector3.zero;
 
     private void UpdateRotationNew(float deltaTime)
     {
@@ -236,42 +152,205 @@ public class SkaterController : MonoBehaviour
 
     #region Velocity
 
-    private Vector3 AirAcceleration()
+    private void GroundedVelocity(float dT)
     {
-        return Vector3.zero;
+        // Grounded has several physics elements working together: 
+        // 1. Gravity (along carve edge)
+        // 2. Surface velocity (from the wave "generators" perpendicular to carve edge)
+        // 3. Steering (using centrepetal forces)
+        // 4. Thrusters:
+        //    a. Strafing (whilst moving along the parallel across the surface) 
+        //    b. Accel and breaking (along the velocity?)
+
+        #region shared values
+
+        // Find the normalised carve direction
+        // For now its the forward of the transform
+        // Could be changed to an intersection test thingy?
+        Vector3 carveEdge = tr.forward.normalized;
+
+        #endregion
+
+        #region 1. Gravity
+
+        // The force or acceleration of gravity is greater when carving more in line with gravity
+        // Hence a dot projection is done between the angle of gravity and the carveEdge 
+        // theta = carve dot gravity normalized
+        // CarveEdge parallel to Gravity ~ theta == 1 && theta == 0 when carve and gravity are perpendicular 
+
+        // Maybe think about the whole friction thing (for example when standing still but not carving??)
+
+        // The angle difference between the grav dir and the carve dir
+        float gravTheta = Vector3.Dot(Gravity.Direction, carveEdge);
+
+        // calculate the gravity component
+        Vector3 gravity = gravTheta * Gravity.Magnitude * carveEdge; // (1 - theta) * magnitute * gravityDir along surface for slide??
+
+        #endregion
+
+        #region 2. Surface
+
+
+
+        #endregion
+
+        Debug.Log(string.Format("Grav: {0} theta {1} ", gravity, gravTheta));
+
+        rb.velocity += dT * gravity;
+
+        // Max
+        if (rb.velocity.magnitude > Movement.MaxSpeed)
+        {
+            rb.velocity = rb.velocity.normalized * Movement.MaxSpeed;
+        }
+            
     }
 
-    private Vector3 Gravity()
+
+    private void AirbornVelocity(float dT)
     {
-        return GravitySetting.Velocity;
-    }
-
-    private Vector3 GroundedAcceleration()
-    {
-        Vector3 d = tr.forward;
-
-        Vector3 v0 = rb.velocity;
-        Vector3 v0n = v0.normalized;
-
-        Vector3 g = GravitySetting.Velocity;
-        Vector3 gn = g.normalized;
-
-        float steer = Vector3.Dot(v0n, d) * v0.magnitude;
-        float grav = Vector3.Dot(gn, d) * g.magnitude;
-
-        Vector3 st = steer * d;
-        Vector3 gt = grav * d;
-
-        Vector3 v1 = st + gt;
-
-        // Check if going backwards
-
-        //Debug.Log(string.Format("a: {0} = st:{1} * d + gr{3} * d |||| d{2}",v1,steer,d,grav));
-
-        return v1;
+        rb.velocity += dT * Gravity.Velocity;
     }
 
     #endregion
+
+    //private Vector3 SurfaceSpeed()
+    //{
+    //    return Vector3.zero;
+    //}
+
+    //[Range(0,1)]
+    //public float BreakAngle = 0.45f;
+
+    //public float BreakFactorSpeed = 1.0f;
+    //public float BreakFactorSlow = 10.0f;
+
+
+    //private Vector3 Braking()
+    //{
+    //    Vector3 d = tr.forward.normalized;
+    //    Vector3 v = rb.velocity;
+    //    Vector3 vn = v.normalized;
+    //    float vm = v.magnitude;
+
+    //    // No need to brake if there is no velocity
+    //    if(vm == 0)
+    //    {
+    //        return Vector3.zero;
+    //    }
+
+    //    // Only break if the direction is sufficiently facing away from the velocity
+    //    float dirAngle = Vector3.Dot(vn,d);
+
+    //    Debug.Log(string.Format("d: {0} {3} vn: {1} theta {2}", d, vn, dirAngle, d.normalized));
+    //    if(dirAngle == 0 || Mathf.Abs(dirAngle) > BreakAngle)
+    //    {
+    //        return Vector3.zero;
+    //    }
+
+    //    // Calculate the break 
+    //    Debug.Log("Braking");
+
+    //    // break Angle Factor
+    //    float ba = dirAngle / BreakAngle;
+
+    //    // Fast break factor (does the main bulk of the breaking)
+    //    float fb = vm * BreakFactorSpeed;
+
+    //    // Slow break factor (practically only works when the velocity is very low)
+    //    float sb = BreakFactorSlow / vm;
+
+    //    //Debug.Log(string.Format("d: {0} v: {1} vn: {2} vm: {3} dir: {4} ba: {5} fb {6} sb {7}",d,v,vn,vm,dirAngle,ba,fb,sb));
+        
+    //    // negative velocity direction * break angle * (fastbreak + slowbreak)
+    //    return -vn * ba * fb;
+    //}
+
+    //private Vector3 SurfGravity()
+    //{
+    //    return Gravity();
+        
+    //    return Vector3.zero;
+        
+        
+    //}
+
+    //public float SteerPower = 1.0f;
+
+    //private Vector3 Steer(float dT)
+    //{
+    //    Vector3 d = tr.forward.normalized;
+
+    //    Vector3 v0 = rb.velocity;
+    //    Vector3 v0n = v0.normalized;
+
+    //    // Two steps:
+    //    // - calculate the new direction
+    //    // - subtract an equal magnitude from the velocity
+
+    //    // the dot product of the direction and the velocity
+    //    // where 0 = perpendicular and 1 = parralel
+    //    float theta = Vector3.Dot(v0n, d);
+
+    //    // Check if backwards is a special case
+    //    if (theta < 0)
+    //        Debug.Log("Backwards man");
+
+    //    float steerMagnitude = dT * theta * v0.magnitude * SteerPower;
+
+    //    Vector3 steer = d.normalized * steerMagnitude;
+
+    //    Vector3 correction = -v0n * steerMagnitude;//((v0+steer).magnitude - v0.magnitude)* -v0n;
+
+    //    Debug.Log(string.Format("{0} {1} {2}",steer, correction, (steer + correction).magnitude));
+      
+    //    return steer + correction;
+    //}
+
+    //#endregion
+
+    //#region Rotation
+
+    
+
+    //#endregion
+
+    //#region Velocity
+
+    //private Vector3 AirAcceleration()
+    //{
+    //    return Vector3.zero;
+    //}
+
+    ////private Vector3 Gravity()
+    ////{
+    ////    return GravitySetting.Velocity;
+    ////}
+
+    //private Vector3 GroundedAcceleration()
+    //{
+    //    Vector3 d = tr.forward;
+
+    //    Vector3 v0 = rb.velocity;
+    //    Vector3 v0n = v0.normalized;
+
+    //    Vector3 g = Gravity.Velocity;
+    //    Vector3 gn = g.normalized;
+
+    //    float steer = Vector3.Dot(v0n, d) * v0.magnitude;
+    //    float grav = Vector3.Dot(gn, d) * g.magnitude;
+
+    //    Vector3 st = steer * d;
+    //    Vector3 gt = grav * d;
+
+    //    Vector3 v1 = st + gt;
+
+    //    // Check if going backwards
+
+    //    //Debug.Log(string.Format("a: {0} = st:{1} * d + gr{3} * d |||| d{2}",v1,steer,d,grav));
+
+    //    return v1;
+    //}
 
     #region Collision
 

@@ -31,8 +31,11 @@ public class InputManager : MonoBehaviour
     {
         Mouse.Update();
 
-        Skater.Input.Pitch = Mouse.MouseY;
-        Skater.Input.Yaw = Mouse.MouseX;
+        if(Skater != null && Skater.Input != null)
+        {
+            Skater.Input.Pitch = Mouse.MouseY;
+            Skater.Input.Yaw = Mouse.MouseX;
+        }
 
         if (Input.GetKeyDown(KeyCode.Space))
             Debug.Break();

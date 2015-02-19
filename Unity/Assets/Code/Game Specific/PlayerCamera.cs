@@ -3,9 +3,17 @@ using System.Collections;
 
 public class PlayerCamera : MonoBehaviour 
 {
-    public Transform LookAt;
+    public enum CameraOrientationMode
+    {
+        Forward,
+        Velocity
+    }
+    
+    public Transform Target;
     public float CameraDistance = 10;
     public float Smooth = 0.3f;
+    public CameraOrientationMode OrientationMode;
+
 
     private Camera mc;
     private Transform tr;
@@ -21,13 +29,37 @@ public class PlayerCamera : MonoBehaviour
 	// Update is called once per frame
 	void Update () 
     {
-        tr.LookAt(LookAt,LookAt.up);
-        tr.position = Vector3.Slerp(tr.position, TargetDistance(), Smooth);
+        Vector3 up;
+        Vector3 forward;
+
+        switch(OrientationMode)
+        {
+            case CameraOrientationMode.Velocity:
+                forward = Target.rigidbody.velocity.normalized;
+                up = new Vector3(0,1,0);//Vector3.Cross(forward,Target.right);
+                break;
+            default:
+                up = Target.up;
+                forward = Target.forward;
+                break;
+        }
+
+        // Look at the target
+        tr.LookAt(Target, up);
+
+        // Set the position
+        tr.position = Vector3.Slerp(tr.position, Target.position + forward * -CameraDistance, Smooth);
 	}
 
-    private Vector3 TargetDistance()
-    {
-        // Change to lerp
-        return LookAt.position + LookAt.forward * -CameraDistance;
-    }
+    //private Vector3 TargetVelocityOrientationDistance()
+    //{
+    //    // Change to lerp
+    //    return Target.rigidbody.velocity.normalized ;
+    //}
+
+    //private Vector3 TargetForwardOrientationDistance()
+    //{
+    //    // Change to lerp
+    //    return Target.position + Target.forward * -CameraDistance;
+    //}
 }
