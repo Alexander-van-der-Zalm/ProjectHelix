@@ -14,6 +14,8 @@ public class PlayerCamera : MonoBehaviour
     public float Smooth = 0.3f;
     public CameraOrientationMode OrientationMode;
 
+    public float cameraAngleOffset = 15;
+
 
     private Camera mc;
     private Transform tr;
@@ -31,6 +33,7 @@ public class PlayerCamera : MonoBehaviour
     {
         Vector3 up;
         Vector3 forward;
+        Vector3 side;
 
         switch(OrientationMode)
         {
@@ -44,11 +47,15 @@ public class PlayerCamera : MonoBehaviour
                 break;
         }
 
+        side = Vector3.Cross(forward, up);
+
         // Look at the target
         tr.LookAt(Target, up);
 
+        Quaternion rotateOffset = Quaternion.AngleAxis(cameraAngleOffset, side);
+
         // Set the position
-        tr.position = Vector3.Slerp(tr.position, Target.position + forward * -CameraDistance, Smooth);
+        tr.position = Vector3.Slerp(tr.position, Target.position + rotateOffset * forward * -CameraDistance, Smooth);
 	}
 
     //private Vector3 TargetVelocityOrientationDistance()
