@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections;
+using System;
 
 public class SkaterController : MonoBehaviour
 {
@@ -53,11 +54,20 @@ public class SkaterController : MonoBehaviour
         /// spin around the right axis with Pitch[0-1] * turnSpeed degrees per second
         /// </summary>
         public float Pitch { get; set; }
+
+        public Vector2 ThrusterInput { get; set; }
     }
 
     #endregion
 
     #region Fields
+
+    public Vector3 SurfaceVelocityHack = new Vector3(0, 1, 0);
+
+    public bool GroundedGravity = true;
+    public bool GroundedSurface = true;
+    public bool GroundedSteering = true;
+    public bool GroundedThrusters = true;
 
     public MovementInfo Movement;
     public RotationSettings Rotation;
@@ -190,13 +200,31 @@ public class SkaterController : MonoBehaviour
 
         #region 2. Surface
 
+        // Get the surface velocity (direction and speed)
+        Vector3 surfaceVelocity = SurfaceVelocityHack;
 
+        // Maybe change to a texture lookup based on current position
+        
+        // Get the angle dot product between the carve edge and the surface velocity
+        float surfTheta = 1 - Math.Abs(Vector3.Dot(surfaceVelocity.normalized, carveEdge));
+
+        // calculate the surface component
+        Vector3 surface = surfTheta * surfaceVelocity;
 
         #endregion
 
-        Debug.Log(string.Format("Grav: {0} theta {1} ", gravity, gravTheta));
+        //Debug.Log(string.Format("Grav: {0} theta {1} Surf: {2} theta {3} ", gravity, gravTheta, surface, surfTheta));
 
-        rb.velocity += dT * gravity;
+        // Do rays
+        Debug.DrawRay(rb.position, gravity, Color.blue);
+        Debug.DrawRay(rb.position, surface, Color.green);
+        Debug.DrawRay(rb.position, rb.velocity, Color.yellow);
+
+        if (GroundedGravity)
+            rb.velocity += dT * gravity;
+
+        if(GroundedSurface)
+            rb.velocity += dT * surface;
 
         // Max
         if (rb.velocity.magnitude > Movement.MaxSpeed)
