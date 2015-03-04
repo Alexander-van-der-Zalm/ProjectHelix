@@ -10,6 +10,8 @@ public class InputManager : MonoBehaviour
     public SkaterController Skater;
     public MouseInput Mouse;
 
+    public ControlScheme scheme;
+
     private PlayerCamera Camera;
 
     #endregion
@@ -20,6 +22,7 @@ public class InputManager : MonoBehaviour
 	void Start () 
     {
         Camera = GetComponent<PlayerCamera>();
+        
         Mouse.Start(); 
 	}
 

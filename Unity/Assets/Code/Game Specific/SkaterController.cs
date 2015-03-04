@@ -174,10 +174,16 @@ public class SkaterController : MonoBehaviour
 
         #region shared values
 
+        Ray ray = new Ray(tr.position,tr.up.normalized*-0.5f);
+        RaycastHit hit;
+        Physics.Raycast(ray, out hit);
+
+        Vector3 normal = hit.normal;
+
         // Find the normalised carve direction
         // For now its the forward of the transform
         // Could be changed to an intersection test thingy?
-        Vector3 carveEdge = tr.forward.normalized;
+        Vector3 carveEdge = Vector3.Cross(tr.up, normal);//tr.forward.normalized;
 
         #endregion
 
@@ -216,6 +222,7 @@ public class SkaterController : MonoBehaviour
         //Debug.Log(string.Format("Grav: {0} theta {1} Surf: {2} theta {3} ", gravity, gravTheta, surface, surfTheta));
 
         // Do rays
+        Debug.DrawRay(rb.position, carveEdge, Color.red);
         Debug.DrawRay(rb.position, gravity, Color.blue);
         Debug.DrawRay(rb.position, surface, Color.green);
         Debug.DrawRay(rb.position, rb.velocity, Color.yellow);

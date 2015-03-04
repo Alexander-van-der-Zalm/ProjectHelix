@@ -43,27 +43,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Skater: {fileID: 0}
-  RotatePerSecond: 360
-  LockCursor: 1
-  MouseSensitivity: 2
-  Curve:
-    serializedVersion: 2
-    m_Curve:
-    - time: 0
-      value: 0
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-    - time: 1
-      value: 1
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-    m_PreInfinity: 2
-    m_PostInfinity: 2
-  SmoothFrames: 10
-  x: []
-  y: []
+  Mouse:
+    LockCursor: 0
+    MouseSensitivity: 3
+    SmoothFrames: 15
+  scheme: {fileID: 0}
 --- !u!114 &11473780
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -106,13 +90,16 @@ MonoBehaviour:
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 173782}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 11b5d259ef34f2b4583ba69a723b033b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  LookAt: {fileID: 0}
+  Target: {fileID: 0}
   CameraDistance: 10
+  Smooth: .075000003
+  OrientationMode: 1
+  cameraAngleOffset: -15
 --- !u!1001 &100100000
 Prefab:
   m_ObjectHideFlags: 1
