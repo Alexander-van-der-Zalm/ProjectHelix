@@ -17,6 +17,6 @@ public class CameraPixelsToUnit : MonoBehaviour
 	void Update () 
     {
         int height = Mathf.RoundToInt(TargetWidth / (float)Screen.width * Screen.height);
-        camera.orthographicSize = height / PixelsToUnit / 2;
+        GetComponent<Camera>().orthographicSize = height / PixelsToUnit / 2;
 	}
 }

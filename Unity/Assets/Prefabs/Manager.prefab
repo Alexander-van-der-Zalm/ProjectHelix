@@ -8,7 +8,6 @@ GameObject:
   serializedVersion: 4
   m_Component:
   - 4: {fileID: 473782}
-  - 114: {fileID: 11473782}
   - 114: {fileID: 11473778}
   - 114: {fileID: 11473780}
   - 114: {fileID: 11480778}
@@ -47,7 +46,7 @@ MonoBehaviour:
     LockCursor: 0
     MouseSensitivity: 3
     SmoothFrames: 15
-  scheme: {fileID: 0}
+  scheme: {fileID: 11400000, guid: 9f2087b680da6dd4bb6e9280d7f88e6d, type: 2}
 --- !u!114 &11473780
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -59,31 +58,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 76d65190da9765645a38abef6e13f3e3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
---- !u!114 &11473782
-MonoBehaviour:
-  m_ObjectHideFlags: 1
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 100100000}
-  m_GameObject: {fileID: 173782}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: aa584fbee541324448dd18d8409c7a41, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  ownerId: 0
-  group: 0
-  prefixBackup: -1
-  observed: {fileID: 0}
-  synchronization: 0
-  onSerializeTransformOption: 3
-  onSerializeRigidBodyOption: 2
-  ownershipTransfer: 0
-  ObservedComponents:
-  - {fileID: 0}
-  ObservedComponentsFoldoutOpen: 1
-  viewIdField: 0
-  instantiationId: -1
-  isRuntimeInstantiated: 0
 --- !u!114 &11480778
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -111,4 +85,3 @@ Prefab:
   m_ParentPrefab: {fileID: 0}
   m_RootGameObject: {fileID: 173782}
   m_IsPrefabParent: 1
-  m_IsExploded: 1

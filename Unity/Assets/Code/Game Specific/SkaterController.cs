@@ -48,12 +48,12 @@ public class SkaterController : MonoBehaviour
         /// <summary>
         /// spin around the up axis with Yaw[0-1] * turnSpeed degrees per second
         /// </summary>
-        public float Yaw { get; set; }
+        public float Steer { get; set; }
         
         /// <summary>
         /// spin around the right axis with Pitch[0-1] * turnSpeed degrees per second
         /// </summary>
-        public float Pitch { get; set; }
+        public float ForwardLean { get; set; }
 
         public Vector2 ThrusterInput { get; set; }
     }
@@ -73,6 +73,8 @@ public class SkaterController : MonoBehaviour
     public RotationSettings Rotation;
     public GravitySettings Gravity;
     public InputContainer Input;
+
+    public float RayCastLength;
 
     private Quaternion targetRotation = Quaternion.identity;
     private bool grounded;
@@ -105,10 +107,21 @@ public class SkaterController : MonoBehaviour
     {
         float dT = Time.fixedDeltaTime;
 
+        Vector3 surfaceNormal = GetSurfaceNormal();
+
+        if (surfaceNormal == Vector3.zero)
+        {
+            grounded = false;
+            Debug.Log("HOI");
+        }
+        else
+            grounded = true;
+            
+
         if (grounded)
         {
-            GroundedRotation(dT);
-            GroundedVelocity(dT);
+            GroundedRotation(dT, surfaceNormal);
+            GroundedVelocity(dT, surfaceNormal);
         }
         else // Airborn
         {
@@ -122,32 +135,45 @@ public class SkaterController : MonoBehaviour
         grounded = false;
     }
 
+    private Vector3 GetSurfaceNormal()
+    {  
+        // Get the surface normal through an raycast
+        Ray ray = new Ray(tr.position, tr.up.normalized * -1);
+        RaycastHit hit;
+
+        Debug.DrawRay(tr.position, tr.up.normalized * -RayCastLength, Color.cyan);
+
+        // Handle edge case when there is no contact?????
+        if (!Physics.Raycast(ray, out hit, RayCastLength))
+        {
+            //Debug.LogError("Exception in surface raycast when grounded");
+            return Vector3.zero;
+        }
+
+        return hit.normal.normalized;
+    }
+
     #endregion
 
     #region Rotation
 
     private void AirbornRotation(float dT)
     {
-        UpdateRotationNew(dT);
+        UpdateRotationV1(dT);
     }
 
-    private void GroundedRotation(float dT)
+    private void GroundedRotation(float dT, Vector3 surfaceNormal)
     {
-        UpdateRotationNew(dT);
+        //UpdateRotationV1(dT);
+        UpdateGroundedRotation(dT, surfaceNormal);
     }
 
     //private Vector3 targetDirection = Vector3.zero;
    // private Vector3 inputV3 = Vector3.zero;
 
-    private void UpdateRotationNew(float deltaTime)
+    private void UpdateRotationV1(float deltaTime)
     {
-        // Calculate the yaw + pitch additions
-        float yaw = deltaTime * Input.Yaw * Rotation.YawDegPerSec;
-        float pitch = deltaTime * -Input.Pitch * Rotation.PitchDegPerSec;
-
-        // Add degrees to new rotation
-        Rotation.Yaw += yaw;
-        Rotation.Pitch += pitch;
+        UpdateYawAndPitch(deltaTime);
 
         // Calculate the rotation in quaternions
         targetRotation = Quaternion.AngleAxis(Rotation.Yaw, Vector3.up);
@@ -158,11 +184,54 @@ public class SkaterController : MonoBehaviour
         rb.rotation = (targetRotation);
     }
 
+    private void UpdateYawAndPitch(float deltaTime)
+    {
+        // Calculate the yaw + pitch additions
+        float yaw = deltaTime * Input.Steer * Rotation.YawDegPerSec;
+        float pitch = deltaTime * -Input.ForwardLean * Rotation.PitchDegPerSec;
+
+        // Add degrees to new rotation
+        Rotation.Yaw += yaw;
+        Rotation.Pitch += pitch;
+    }
+
+    private void UpdateGroundedRotation(float dT, Vector3 surfaceNormal)
+    {
+        // 1. Find and rotate towards up and forward vector
+        // 2. Add a small delay to reach the target up and forward
+        // 3. Solve correction from jumps:
+        //      a. to fall or rotate up again
+        // 4. When landing do COG/foot swing corrections
+
+        // SurfaceNormal direction is the target up (not gravity)
+        Vector3 targetUp = surfaceNormal;
+        Vector3 forward;// 
+        Vector3 side = tr.right;
+
+        float yawInput = dT * Input.Steer * Rotation.YawDegPerSec;
+
+        // Add rotation (Yaw) to target
+        Quaternion yaw = Quaternion.AngleAxis(yawInput, targetUp);
+        side = yaw * side;
+        forward = Vector3.Cross(side, targetUp);
+
+        // Add forward lean (Pitch) to target
+        //Quaternion pitch = Quaternion.AngleAxis()
+
+        // Max 
+
+        // Side lean (Roll)
+        // 
+
+        // Do rotation towards
+        rb.rotation = Quaternion.LookRotation(forward, targetUp);
+    }
+
     #endregion
 
     #region Velocity
 
-    private void GroundedVelocity(float dT)
+    private void GroundedVelocity(float dT, Vector3 surfaceNormal)
     {
         // Grounded has several physics elements working together: 
         // 1. Gravity (along carve edge)
@@ -172,22 +241,34 @@ public class SkaterController : MonoBehaviour
         //    a. Strafing (whilst moving along the parallel across the surface) 
         //    b. Accel and breaking (along the velocity?)
 
-        #region shared values
+        #region Shared values (carve edge, surface normal, etc.)
 
-        Ray ray = new Ray(tr.position,tr.up.normalized*-0.5f);
-        RaycastHit hit;
-        Physics.Raycast(ray, out hit);
+        
 
-        Vector3 normal = hit.normal;
+        // velocity
+        Vector3 v = GetComponent<Rigidbody>().velocity;
+        float vm = v.magnitude;
 
         // Find the normalised carve direction
-        // For now its the forward of the transform
-        // Could be changed to an intersection test thingy?
-        Vector3 carveEdge = Vector3.Cross(tr.up, normal);//tr.forward.normalized;
 
+        // Handle edge case when perp (this would mean no carving in theory)
+        Vector3 carveEdge;
+
+        if(tr.up == surfaceNormal)
+        {
+            carveEdge = tr.forward;
+        }
+        else 
+        {
+            // Cross product of the up vector of the feet (up of transform for now) and the surface normal
+            carveEdge = Vector3.Cross(tr.up.normalized, surfaceNormal).normalized;//tr.forward.normalized;
+        }
+
+       
+ 
         #endregion
 
-        #region 1. Gravity
+        #region 1. Gravity (carving)
 
         // The force or acceleration of gravity is greater when carving more in line with gravity
         // Hence a dot projection is done between the angle of gravity and the carveEdge 
@@ -204,7 +285,7 @@ public class SkaterController : MonoBehaviour
 
         #endregion
 
-        #region 2. Surface
+        #region 2. Surface (carving)
 
         // Get the surface velocity (direction and speed)
         Vector3 surfaceVelocity = SurfaceVelocityHack;
@@ -219,6 +300,20 @@ public class SkaterController : MonoBehaviour
 
         #endregion
 
+        #region 3. Steering (using centripetal forces)
+
+        // Determine whether steering left or right (via input)
+
+        // Find the current turn radius
+        // min and max interpolate between
+
+        float radius = 1;
+        // direction of centripetal foce (perp to velocity)
+        //Vector3 r = Vector3.Cross()
+        //Vector3 centripetal = (vm * vm) / radius;
+
+        #endregion
+
         //Debug.Log(string.Format("Grav: {0} theta {1} Surf: {2} theta {3} ", gravity, gravTheta, surface, surfTheta));
 
         // Do rays
@@ -226,6 +321,8 @@ public class SkaterController : MonoBehaviour
         Debug.DrawRay(rb.position, gravity, Color.blue);
         Debug.DrawRay(rb.position, surface, Color.green);
         Debug.DrawRay(rb.position, rb.velocity, Color.yellow);
+        Debug.DrawRay(rb.position, surfaceNormal, Color.white);
+        Debug.DrawRay(rb.position, tr.forward, Color.magenta);
 
         if (GroundedGravity)
             rb.velocity += dT * gravity;
@@ -248,144 +345,6 @@ public class SkaterController : MonoBehaviour
     }
 
     #endregion
-
-    //private Vector3 SurfaceSpeed()
-    //{
-    //    return Vector3.zero;
-    //}
-
-    //[Range(0,1)]
-    //public float BreakAngle = 0.45f;
-
-    //public float BreakFactorSpeed = 1.0f;
-    //public float BreakFactorSlow = 10.0f;
-
-
-    //private Vector3 Braking()
-    //{
-    //    Vector3 d = tr.forward.normalized;
-    //    Vector3 v = rb.velocity;
-    //    Vector3 vn = v.normalized;
-    //    float vm = v.magnitude;
-
-    //    // No need to brake if there is no velocity
-    //    if(vm == 0)
-    //    {
-    //        return Vector3.zero;
-    //    }
-
-    //    // Only break if the direction is sufficiently facing away from the velocity
-    //    float dirAngle = Vector3.Dot(vn,d);
-
-    //    Debug.Log(string.Format("d: {0} {3} vn: {1} theta {2}", d, vn, dirAngle, d.normalized));
-    //    if(dirAngle == 0 || Mathf.Abs(dirAngle) > BreakAngle)
-    //    {
-    //        return Vector3.zero;
-    //    }
-
-    //    // Calculate the break 
-    //    Debug.Log("Braking");
-
-    //    // break Angle Factor
-    //    float ba = dirAngle / BreakAngle;
-
-    //    // Fast break factor (does the main bulk of the breaking)
-    //    float fb = vm * BreakFactorSpeed;
-
-    //    // Slow break factor (practically only works when the velocity is very low)
-    //    float sb = BreakFactorSlow / vm;
-
-    //    //Debug.Log(string.Format("d: {0} v: {1} vn: {2} vm: {3} dir: {4} ba: {5} fb {6} sb {7}",d,v,vn,vm,dirAngle,ba,fb,sb));
-        
-    //    // negative velocity direction * break angle * (fastbreak + slowbreak)
-    //    return -vn * ba * fb;
-    //}
-
-    //private Vector3 SurfGravity()
-    //{
-    //    return Gravity();
-        
-    //    return Vector3.zero;
-        
-        
-    //}
-
-    //public float SteerPower = 1.0f;
-
-    //private Vector3 Steer(float dT)
-    //{
-    //    Vector3 d = tr.forward.normalized;
-
-    //    Vector3 v0 = rb.velocity;
-    //    Vector3 v0n = v0.normalized;
-
-    //    // Two steps:
-    //    // - calculate the new direction
-    //    // - subtract an equal magnitude from the velocity
-
-    //    // the dot product of the direction and the velocity
-    //    // where 0 = perpendicular and 1 = parralel
-    //    float theta = Vector3.Dot(v0n, d);
-
-    //    // Check if backwards is a special case
-    //    if (theta < 0)
-    //        Debug.Log("Backwards man");
-
-    //    float steerMagnitude = dT * theta * v0.magnitude * SteerPower;
-
-    //    Vector3 steer = d.normalized * steerMagnitude;
-
-    //    Vector3 correction = -v0n * steerMagnitude;//((v0+steer).magnitude - v0.magnitude)* -v0n;
-
-    //    Debug.Log(string.Format("{0} {1} {2}",steer, correction, (steer + correction).magnitude));
-      
-    //    return steer + correction;
-    //}
-
-    //#endregion
-
-    //#region Rotation
-
-    
-
-    //#endregion
-
-    //#region Velocity
-
-    //private Vector3 AirAcceleration()
-    //{
-    //    return Vector3.zero;
-    //}
-
-    ////private Vector3 Gravity()
-    ////{
-    ////    return GravitySetting.Velocity;
-    ////}
-
-    //private Vector3 GroundedAcceleration()
-    //{
-    //    Vector3 d = tr.forward;
-
-    //    Vector3 v0 = rb.velocity;
-    //    Vector3 v0n = v0.normalized;
-
-    //    Vector3 g = Gravity.Velocity;
-    //    Vector3 gn = g.normalized;
-
-    //    float steer = Vector3.Dot(v0n, d) * v0.magnitude;
-    //    float grav = Vector3.Dot(gn, d) * g.magnitude;
-
-    //    Vector3 st = steer * d;
-    //    Vector3 gt = grav * d;
-
-    //    Vector3 v1 = st + gt;
-
-    //    // Check if going backwards
-
-    //    //Debug.Log(string.Format("a: {0} = st:{1} * d + gr{3} * d |||| d{2}",v1,steer,d,grav));
-
-    //    return v1;
-    //}
 
     #region Collision
 

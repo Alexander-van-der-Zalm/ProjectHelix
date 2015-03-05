@@ -33,6 +33,8 @@ public class ControlScheme:EasyScriptableObject<ControlScheme>// : MonoBehaviour
     [SerializeField]
     public List<Action> Actions = new List<Action>();
 
+    public List<Axis> AnalogActions = new List<Axis>();
+
     public bool XboxSupport { get { return Horizontal.AxisKeys.Any(k => k.Type == ControlKeyType.Xbox) || Vertical.AxisKeys.Any(k => k.Type == ControlKeyType.Xbox) || Actions.Any(a => a.Keys.Any(k => k.Type == ControlKeyType.Xbox)); } }
 
     #endregion

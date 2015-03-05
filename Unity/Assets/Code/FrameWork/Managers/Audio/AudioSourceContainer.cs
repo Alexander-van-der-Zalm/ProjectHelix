@@ -67,11 +67,11 @@ public class AudioSourceContainer  : MonoBehaviour
         AudioSource.bypassReverbZones = sample.Settings.BypassReverbZones;
 
         AudioSource.dopplerLevel    = sample.Settings.DopplerLevel;
-        AudioSource.panLevel        = sample.Settings.PanLevel;
+        AudioSource.spatialBlend        = sample.Settings.PanLevel;
         AudioSource.spread          = sample.Settings.Spread;
         AudioSource.maxDistance     = sample.Settings.MaxDistance;
 
-        AudioSource.pan             = sample.Settings.Pan2D;
+        AudioSource.panStereo             = sample.Settings.Pan2D;
 
         AudioSource.clip            = sample.Clip;
     }
