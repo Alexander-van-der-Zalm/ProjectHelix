@@ -29,6 +29,14 @@ public class SkaterController : MonoBehaviour
     [System.Serializable]
     public class RotationSettings
     {
+        public float MinTurnRadius;
+        public float MaxTurnRadius;
+        public AnimationCurve TurnRadiusTransition;
+
+        [Range(0,10.0f)]
+        public float LeanTransitionTime = 0.2f;
+        
+
         public float YawDegPerSec = 360.0f;
         public float PitchDegPerSec = 270.0f;
 
@@ -76,6 +84,8 @@ public class SkaterController : MonoBehaviour
 
     public float RayCastLength;
 
+    private float delayedLean = 0;
+
     private Quaternion targetRotation = Quaternion.identity;
     private bool grounded;
 
@@ -112,7 +122,7 @@ public class SkaterController : MonoBehaviour
         if (surfaceNormal == Vector3.zero)
         {
             grounded = false;
-            Debug.Log("HOI");
+            Debug.Log("False test");
         }
         else
             grounded = true;
@@ -120,8 +130,8 @@ public class SkaterController : MonoBehaviour
 
         if (grounded)
         {
-            GroundedRotation(dT, surfaceNormal);
             GroundedVelocity(dT, surfaceNormal);
+            GroundedRotation(dT, surfaceNormal);
         }
         else // Airborn
         {
@@ -168,8 +178,7 @@ public class SkaterController : MonoBehaviour
         UpdateGroundedRotation(dT, surfaceNormal);
     }
 
-    //private Vector3 targetDirection = Vector3.zero;
-   // private Vector3 inputV3 = Vector3.zero;
+    #region V1
 
     private void UpdateRotationV1(float deltaTime)
     {
@@ -195,6 +204,8 @@ public class SkaterController : MonoBehaviour
         Rotation.Pitch += pitch;
     }
 
+    #endregion
+
     private void UpdateGroundedRotation(float dT, Vector3 surfaceNormal)
     {
         // 1. Find and rotate towards up and forward vector
@@ -208,6 +219,9 @@ public class SkaterController : MonoBehaviour
         Vector3 forward;// 
         Vector3 side = tr.right;
 
+        #region Yaw
+
+        // Yaw for driftbutton - otherwise lean
         float yawInput = dT * Input.Steer * Rotation.YawDegPerSec;
 
         // Add rotation (Yaw) to target
@@ -215,7 +229,30 @@ public class SkaterController : MonoBehaviour
         side = yaw * side;
         forward = Vector3.Cross(side, targetUp);
 
+        #endregion
+
         // Add forward lean (Pitch) to target
+        if(Rotation.LeanTransitionTime > 0)
+        {
+            // Delayed Input/ Leaning
+            if (Input.Steer != 0) // Add more leaning
+                delayedLean = Mathf.Clamp(delayedLean + Input.Steer * dT / Rotation.LeanTransitionTime, -1, 1);
+            else if (delayedLean != 0)
+            {
+                float sign = Mathf.Sign(delayedLean);
+                delayedLean -= sign * dT / Rotation.LeanTransitionTime;
+                if (sign != Mathf.Sign(delayedLean))
+                    delayedLean = 0;
+            }
+        }
+        else
+        {
+            // Direct leaning
+            delayedLean = Input.Steer;
+        }
+
+        Debug.Log(delayedLean);
+
         //Quaternion pitch = Quaternion.AngleAxis()
 
         // Max 
@@ -242,8 +279,6 @@ public class SkaterController : MonoBehaviour
         //    b. Accel and breaking (along the velocity?)
 
         #region Shared values (carve edge, surface normal, etc.)
-
-        
 
         // velocity
         Vector3 v = GetComponent<Rigidbody>().velocity;
@@ -321,8 +356,8 @@ public class SkaterController : MonoBehaviour
         Debug.DrawRay(rb.position, gravity, Color.blue);
         Debug.DrawRay(rb.position, surface, Color.green);
         Debug.DrawRay(rb.position, rb.velocity, Color.yellow);
-        Debug.DrawRay(rb.position, surfaceNormal, Color.white);
-        Debug.DrawRay(rb.position, tr.forward, Color.magenta);
+        //Debug.DrawRay(rb.position, surfaceNormal, Color.white);
+        //Debug.DrawRay(rb.position, tr.forward, Color.magenta);
 
         if (GroundedGravity)
             rb.velocity += dT * gravity;
