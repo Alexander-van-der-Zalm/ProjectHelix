@@ -38,7 +38,7 @@ public class PlayerCamera : MonoBehaviour
         switch(OrientationMode)
         {
             case CameraOrientationMode.Velocity:
-                forward = Target.rigidbody.velocity.normalized;
+                forward = Target.GetComponent<Rigidbody>().velocity.normalized;
                 up = new Vector3(0,1,0);//Vector3.Cross(forward,Target.right);
                 break;
             default:

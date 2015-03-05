@@ -5,6 +5,12 @@ using System.Linq;
 
 public class InputManager : MonoBehaviour
 {
+    public enum SkaterActions
+    {
+        LeanLeft,
+        LeanRight
+    }
+    
     #region Fields
 
     public SkaterController Skater;
@@ -22,7 +28,12 @@ public class InputManager : MonoBehaviour
 	void Start () 
     {
         Camera = GetComponent<PlayerCamera>();
-        
+        if (scheme == null)
+        {
+            scheme = ControlScheme.CreateScheme<SkaterActions>();
+            ScriptableObjectHelper.SaveAssetAutoNaming(scheme);
+        }
+            
         Mouse.Start(); 
 	}
 
@@ -34,14 +45,27 @@ public class InputManager : MonoBehaviour
     {
         Mouse.Update();
 
-        if(Skater != null && Skater.Input != null)
-        {
-            Skater.Input.Pitch = Mouse.MouseY;
-            Skater.Input.Yaw = Mouse.MouseX;
-        }
-
         if (Input.GetKeyDown(KeyCode.Space))
             Debug.Break();
+
+        if (Skater == null && Skater.Input == null)
+        {
+            Debug.Log("Skater not set in input manager");
+            // Find potentially (to lazy now)
+        }
+
+        if (scheme != null && scheme.InputType == ControlKeyType.Xbox || !Mouse.Active)
+        {
+            Skater.Input.Steer = scheme.Horizontal.Value();
+            Skater.Input.ForwardLean = scheme.Vertical.Value();
+        }
+        else
+        {
+            Skater.Input.ForwardLean = Mouse.MouseY;
+            Skater.Input.Steer = Mouse.MouseX;
+        }
+
+        
         // Todo add camera scroll
     }
 
@@ -53,6 +77,8 @@ public class InputManager : MonoBehaviour
 [System.Serializable]
 public class MouseInput
 {
+    public bool Active = false;
+
     public bool LockCursor = false;
 
     public float MouseSensitivity = 3.0f;
