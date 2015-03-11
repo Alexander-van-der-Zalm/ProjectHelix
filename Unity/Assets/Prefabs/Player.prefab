@@ -8,7 +8,6 @@ GameObject:
   serializedVersion: 4
   m_Component:
   - 4: {fileID: 423678}
-  - 114: {fileID: 11423678}
   - 114: {fileID: 11423676}
   - 54: {fileID: 5452414}
   - 136: {fileID: 13661786}
@@ -44,7 +43,7 @@ Transform:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 123678}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 2, y: -.800000012, z: 0}
+  m_LocalPosition: {x: 2, y: 6.63500023, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 452414}
@@ -63,7 +62,7 @@ Transform:
   m_Father: {fileID: 423678}
   m_RootOrder: 0
 --- !u!23 &2352414
-Renderer:
+MeshRenderer:
   m_ObjectHideFlags: 1
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
@@ -71,15 +70,19 @@ Renderer:
   m_Enabled: 1
   m_CastShadows: 1
   m_ReceiveShadows: 1
-  m_LightmapIndex: 255
-  m_LightmapTilingOffset: {x: 1, y: 1, z: 0, w: 0}
   m_Materials:
   - {fileID: 2100000, guid: 6d84c356f4ce49046b304c1b3bf526f0, type: 2}
   m_SubsetIndices: 
   m_StaticBatchRoot: {fileID: 0}
   m_UseLightProbes: 0
-  m_LightProbeAnchor: {fileID: 0}
+  m_ReflectionProbeUsage: 1
+  m_ProbeAnchor: {fileID: 0}
   m_ScaleInLightmap: 1
+  m_PreserveUVs: 0
+  m_ImportantGI: 0
+  m_AutoUVMaxDistance: .5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
   m_SortingLayerID: 0
   m_SortingOrder: 0
 --- !u!33 &3352414
@@ -117,6 +120,8 @@ Animator:
   m_CullingMode: 0
   m_UpdateMode: 0
   m_ApplyRootMotion: 1
+  m_LinearVelocityBlending: 0
+  m_WarningMessage: 
   m_HasTransformHierarchy: 1
   m_AllowConstantClipSamplingOptimization: 1
 --- !u!114 &11423676
@@ -130,43 +135,33 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e4e54fb3bdc026c449339ae5e23e7461, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  SurfaceVelocityHack: {x: 0, y: 1, z: -1}
+  GroundedGravity: 1
+  GroundedSurface: 0
+  GroundedSteering: 1
+  GroundedThrusters: 1
   Movement:
-    MaxSpeed: 0
+    MaxSpeed: 3
     AccelerationPerSecond: 0
   Rotation:
+    MinTurnRadius: 0
+    MaxTurnRadius: 0
+    TurnRadiusTransition:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+    MaxLean: .649999976
+    LeanTransitionTime: .200000003
     YawDegPerSec: 360
     PitchDegPerSec: 360
     MaxPitchRange: 90
     yaw: 0
     pitch: 0
-  GravitySetting:
-    GravityMagnitude: 3
-    Direction: {x: 0, y: -1, z: 0}
---- !u!114 &11423678
-MonoBehaviour:
-  m_ObjectHideFlags: 1
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 100100000}
-  m_GameObject: {fileID: 123678}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: aa584fbee541324448dd18d8409c7a41, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  ownerId: 0
-  group: 0
-  prefixBackup: -1
-  observed: {fileID: 0}
-  synchronization: 3
-  onSerializeTransformOption: 3
-  onSerializeRigidBodyOption: 2
-  ownershipTransfer: 0
-  ObservedComponents:
-  - {fileID: 423678}
-  ObservedComponentsFoldoutOpen: 1
-  viewIdField: 0
-  instantiationId: -1
-  isRuntimeInstantiated: 0
+  Gravity:
+    Magnitude: 3
+    direction: {x: 0, y: -1, z: 0}
+  RayCastLength: 0
 --- !u!136 &13661786
 CapsuleCollider:
   m_ObjectHideFlags: 1
@@ -191,4 +186,3 @@ Prefab:
   m_ParentPrefab: {fileID: 0}
   m_RootGameObject: {fileID: 123678}
   m_IsPrefabParent: 1
-  m_IsExploded: 1

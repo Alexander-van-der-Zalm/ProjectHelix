@@ -23,7 +23,7 @@ public class SkaterController : MonoBehaviour
 
         public Vector3 Direction { set { direction = value.normalized; } get { return direction.normalized; } }
 
-        public Vector3 Velocity { get { return Magnitude * Direction; } }
+        public Vector3 Acceleration { get { return Magnitude * Direction; } }
     }
 
     [System.Serializable]
@@ -32,6 +32,9 @@ public class SkaterController : MonoBehaviour
         public float MinTurnRadius;
         public float MaxTurnRadius;
         public AnimationCurve TurnRadiusTransition;
+
+
+        public float MaxLean = 0.65f;
 
         [Range(0,10.0f)]
         public float LeanTransitionTime = 0.2f;
@@ -84,6 +87,9 @@ public class SkaterController : MonoBehaviour
 
     public float RayCastLength;
 
+    private Vector3 surfaceNormal = Vector3.zero;
+    private Quaternion rotationTarget = Quaternion.identity;
+
     private float delayedLean = 0;
 
     private Quaternion targetRotation = Quaternion.identity;
@@ -93,6 +99,8 @@ public class SkaterController : MonoBehaviour
 
     private Rigidbody rb;
     private Transform tr;
+
+    private Vector3 origCoM;
 
     #endregion
 
@@ -104,6 +112,8 @@ public class SkaterController : MonoBehaviour
         tr = GetComponent<Transform>();
         if (Input == null)
             Input = new InputContainer();
+
+        origCoM = rb.centerOfMass;
 
         //rb.velocity = tr.forward * 10;
 	}
@@ -117,65 +127,96 @@ public class SkaterController : MonoBehaviour
     {
         float dT = Time.fixedDeltaTime;
 
-        Vector3 surfaceNormal = GetSurfaceNormal();
+        if(surfaceNormal == Vector3.zero)
+            surfaceNormal = GetSurfaceNormal();
 
-        if (surfaceNormal == Vector3.zero)
-        {
-            grounded = false;
-            Debug.Log("False test");
-        }
-        else
-            grounded = true;
+        // TEMP TEST HACKS
+        //surfaceNormal = new Vector3(0, 1, 1).normalized;
+
+        //if (surfaceNormal != Vector3.zero)
+        //{
+        //    grounded = true;
+        //}
+        ////    grounded = false;
+        ////    Debug.Log("False test");
+        ////}
+        ////else
             
 
         if (grounded)
         {
-            GroundedVelocity(dT, surfaceNormal);
-            GroundedRotation(dT, surfaceNormal);
+            rb.centerOfMass = Vector3.zero;
+            GroundedRotation(dT);
+            GroundedVelocity(dT);
+            
         }
         else // Airborn
         {
             Debug.Log("Airborn");
-
-            AirbornRotation(dT);
+            rb.centerOfMass = origCoM;
+            //AirbornRotation(dT);
             AirbornVelocity(dT);
         }
 
-        // Reset
+        RotateTowardsTarget(dT);
+
+        // Reset (maybe change this to after two frames)
         grounded = false;
+        surfaceNormal = Vector3.zero;
     }
 
+    //private Vector3 GetGroundedSurfaceNormal()
+    //{
+    //    return 
+    //}
+
     private Vector3 GetSurfaceNormal()
-    {  
-        // Get the surface normal through an raycast
-        Ray ray = new Ray(tr.position, tr.up.normalized * -1);
-        RaycastHit hit;
+    {
+        Vector3[] dirs = new Vector3[4];
+        dirs[0] = tr.up.normalized * -1;
+        dirs[1] = Gravity.Direction;
+        dirs[2] = rb.velocity.normalized;
+        dirs[3] = -rb.velocity.normalized;
 
-        Debug.DrawRay(tr.position, tr.up.normalized * -RayCastLength, Color.cyan);
-
-        // Handle edge case when there is no contact?????
-        if (!Physics.Raycast(ray, out hit, RayCastLength))
+        for(int i = 0; i < dirs.Length; i++)
         {
-            //Debug.LogError("Exception in surface raycast when grounded");
-            return Vector3.zero;
-        }
+            // Get the surface normal through an raycast
+            Ray ray = new Ray(tr.position, dirs[i]);
+            RaycastHit hit;
 
-        return hit.normal.normalized;
+            Debug.DrawRay(tr.position, tr.up.normalized * -RayCastLength, Color.cyan);
+            if(Physics.Raycast(ray, out hit, RayCastLength))
+            {
+                //Debug.Log(i);
+                return hit.normal.normalized;
+            }
+        }
+        // Handle edge case when there is no contact?????
+
+        //Debug.LogError("Exception in surface raycast when grounded");
+        return Vector3.zero;
     }
 
     #endregion
 
     #region Rotation
 
+    private void RotateTowardsTarget(float dt)
+    {
+        rb.MoveRotation(Quaternion.Lerp(rb.rotation, rotationTarget, 0.6f));
+    }
+
     private void AirbornRotation(float dT)
     {
         UpdateRotationV1(dT);
     }
 
-    private void GroundedRotation(float dT, Vector3 surfaceNormal)
+    private void GroundedRotation(float dT)
     {
-        //UpdateRotationV1(dT);
-        UpdateGroundedRotation(dT, surfaceNormal);
+        //if(surfaceNormal == Vector3.zero)
+        //    UpdateRotationV1(dT);
+        //else
+            UpdateGroundedRotation(dT);
     }
 
     #region V1
@@ -190,7 +231,7 @@ public class SkaterController : MonoBehaviour
         Vector3 right = targetRotation * Vector3.right;
         targetRotation = Quaternion.AngleAxis(Rotation.Pitch, right) * targetRotation;
 
-        rb.rotation = (targetRotation);
+        rotationTarget = (targetRotation);
     }
 
     private void UpdateYawAndPitch(float deltaTime)
@@ -206,7 +247,7 @@ public class SkaterController : MonoBehaviour
 
     #endregion
 
-    private void UpdateGroundedRotation(float dT, Vector3 surfaceNormal)
+    private void UpdateGroundedRotation(float dT)
     {
         // 1. Find and rotate towards up and forward vector
         // 2. Add a small delay to reach the target up and forward
@@ -221,54 +262,60 @@ public class SkaterController : MonoBehaviour
 
         #region Yaw
 
-        // Yaw for driftbutton - otherwise lean
+        //// Yaw for driftbutton - otherwise lean
         float yawInput = dT * Input.Steer * Rotation.YawDegPerSec;
 
-        // Add rotation (Yaw) to target
+        //// Add rotation (Yaw) to target
         Quaternion yaw = Quaternion.AngleAxis(yawInput, targetUp);
         side = yaw * side;
-        forward = Vector3.Cross(side, targetUp);
+        
 
         #endregion
 
-        // Add forward lean (Pitch) to target
-        if(Rotation.LeanTransitionTime > 0)
-        {
-            // Delayed Input/ Leaning
-            if (Input.Steer != 0) // Add more leaning
-                delayedLean = Mathf.Clamp(delayedLean + Input.Steer * dT / Rotation.LeanTransitionTime, -1, 1);
-            else if (delayedLean != 0)
-            {
-                float sign = Mathf.Sign(delayedLean);
-                delayedLean -= sign * dT / Rotation.LeanTransitionTime;
-                if (sign != Mathf.Sign(delayedLean))
-                    delayedLean = 0;
-            }
-        }
-        else
-        {
-            // Direct leaning
-            delayedLean = Input.Steer;
-        }
+        //// Add forward lean (Pitch) to target
+        //if(Rotation.LeanTransitionTime > 0)
+        //{
+        //    // Delayed Input/ Leaning
+        //    if (Input.Steer != 0) // Add more leaning
+        //        delayedLean = Mathf.Clamp(delayedLean + Input.Steer * dT / Rotation.LeanTransitionTime, -1, 1);
+        //    else if (delayedLean != 0)
+        //    {
+        //        float sign = Mathf.Sign(delayedLean);
+        //        delayedLean -= sign * dT / Rotation.LeanTransitionTime;
+        //        if (sign != Mathf.Sign(delayedLean))
+        //            delayedLean = 0;
+        //    }
+        //}
+        //else
+        //{
+        //    // Direct leaning
+        //    delayedLean = Input.Steer;
+        //}
 
-        Debug.Log(delayedLean);
+        //Debug.Log(delayedLean);
 
         //Quaternion pitch = Quaternion.AngleAxis()
 
         // Max 
 
+        forward = Vector3.Cross(side, targetUp);
+
         // Side lean (Roll)
-        // 
+        //Quaternion roll = Quaternion.AngleAxis(90 * Rotation.MaxLean * delayedLean, forward);
+        //targetUp = roll * targetUp;
 
         // Do rotation towards
-        rb.rotation = Quaternion.LookRotation(forward, targetUp);
+        //Debug.Log(string.Format("Forward {0} Up {1} {2}", forward, targetUp, tr.right));
+        rotationTarget = Quaternion.LookRotation(forward, targetUp);
     }
 
     #endregion
 
     #region Velocity
 
-    private void GroundedVelocity(float dT, Vector3 surfaceNormal)
+    
+
+    private void GroundedVelocity(float dT)
     {
         // Grounded has several physics elements working together: 
         // 1. Gravity (along carve edge)
@@ -299,7 +346,7 @@ public class SkaterController : MonoBehaviour
             carveEdge = Vector3.Cross(tr.up.normalized, surfaceNormal).normalized;//tr.forward.normalized;
         }
 
-       
+        Vector3 side = Vector3.Cross(carveEdge, surfaceNormal).normalized;
  
         #endregion
 
@@ -312,11 +359,14 @@ public class SkaterController : MonoBehaviour
 
         // Maybe think about the whole friction thing (for example when standing still but not carving??)
 
-        // The angle difference between the grav dir and the carve dir
-        float gravTheta = Vector3.Dot(Gravity.Direction, carveEdge);
+        //// The angle difference between the grav dir and the carve dir
+        //float gravTheta = Vector3.Dot(Gravity.Direction, carveEdge);
 
-        // calculate the gravity component
-        Vector3 gravity = gravTheta * Gravity.Magnitude * carveEdge; // (1 - theta) * magnitute * gravityDir along surface for slide??
+        //// calculate the gravity component
+        //Vector3 gravity = gravTheta * Gravity.Magnitude * carveEdge; // (1 - theta) * magnitute * gravityDir along surface for slide??
+
+        // Add full gravity - remove the anisotropic friction direction (orthogonal to the carveEdge along the normal surface)
+        Vector3 gravity = Gravity.Acceleration - side * Vector3.Dot(side, Gravity.Acceleration);
 
         #endregion
 
@@ -351,8 +401,11 @@ public class SkaterController : MonoBehaviour
 
         //Debug.Log(string.Format("Grav: {0} theta {1} Surf: {2} theta {3} ", gravity, gravTheta, surface, surfTheta));
 
+        //Debug.Log(side);
+
         // Do rays
         Debug.DrawRay(rb.position, carveEdge, Color.red);
+        Debug.DrawRay(rb.position, side, Color.red);
         Debug.DrawRay(rb.position, gravity, Color.blue);
         Debug.DrawRay(rb.position, surface, Color.green);
         Debug.DrawRay(rb.position, rb.velocity, Color.yellow);
@@ -376,7 +429,7 @@ public class SkaterController : MonoBehaviour
 
     private void AirbornVelocity(float dT)
     {
-        rb.velocity += dT * Gravity.Velocity;
+        rb.velocity += dT * Gravity.Acceleration;
     }
 
     #endregion
@@ -387,6 +440,8 @@ public class SkaterController : MonoBehaviour
     {
         // Check if the right type of surface
         grounded = true;
+
+        surfaceNormal = other.contacts[0].normal;
     }
 
     #endregion
