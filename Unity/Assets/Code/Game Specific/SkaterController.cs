@@ -273,24 +273,24 @@ public class SkaterController : MonoBehaviour
         #endregion
 
         //// Add forward lean (Pitch) to target
-        //if(Rotation.LeanTransitionTime > 0)
-        //{
-        //    // Delayed Input/ Leaning
-        //    if (Input.Steer != 0) // Add more leaning
-        //        delayedLean = Mathf.Clamp(delayedLean + Input.Steer * dT / Rotation.LeanTransitionTime, -1, 1);
-        //    else if (delayedLean != 0)
-        //    {
-        //        float sign = Mathf.Sign(delayedLean);
-        //        delayedLean -= sign * dT / Rotation.LeanTransitionTime;
-        //        if (sign != Mathf.Sign(delayedLean))
-        //            delayedLean = 0;
-        //    }
-        //}
-        //else
-        //{
-        //    // Direct leaning
-        //    delayedLean = Input.Steer;
-        //}
+        if (Rotation.LeanTransitionTime > 0)
+        {
+            // Delayed Input/ Leaning
+            if (Input.Steer != 0) // Add more leaning
+                delayedLean = Mathf.Clamp(delayedLean + Input.Steer * dT / Rotation.LeanTransitionTime, -1, 1);
+            else if (delayedLean != 0)
+            {
+                float sign = Mathf.Sign(delayedLean);
+                delayedLean -= sign * dT / Rotation.LeanTransitionTime;
+                if (sign != Mathf.Sign(delayedLean))
+                    delayedLean = 0;
+            }
+        }
+        else
+        {
+            // Direct leaning
+            delayedLean = Input.Steer;
+        }
 
         //Debug.Log(delayedLean);
 
@@ -301,8 +301,8 @@ public class SkaterController : MonoBehaviour
         forward = Vector3.Cross(side, targetUp);
 
         // Side lean (Roll)
-        //Quaternion roll = Quaternion.AngleAxis(90 * Rotation.MaxLean * delayedLean, forward);
-        //targetUp = roll * targetUp;
+        Quaternion roll = Quaternion.AngleAxis(90 * Rotation.MaxLean * -delayedLean, forward);
+        targetUp = roll * targetUp;
 
         // Do rotation towards
         //Debug.Log(string.Format("Forward {0} Up {1} {2}", forward, targetUp, tr.right));
