@@ -10,7 +10,7 @@ public class SkaterController : MonoBehaviour
     public class MovementInfo
     {
         public float MaxSpeed;
-        public float AccelerationPerSecond;
+        // TODO Thruster stuff here
     }
 
     [System.Serializable]
@@ -29,29 +29,26 @@ public class SkaterController : MonoBehaviour
     [System.Serializable]
     public class RotationSettings
     {
-        public float MinTurnRadius;
+        //public float MinTurnRadius;
         public float MaxTurnRadius;
         public AnimationCurve TurnRadiusTransition;
 
-
         public float MaxLean = 0.65f;
 
-        [Range(0,10.0f)]
+        [Range(0,2.0f)]
         public float LeanTransitionTime = 0.2f;
         
-
-        public float YawDegPerSec = 360.0f;
+        // For rotation button
+        public float FreeRotationYawDegPerSec = 360.0f;
         public float PitchDegPerSec = 270.0f;
 
-        public float MaxPitchRange = 90.0f;
+        //[SerializeField]
+        //private float yaw;
+        //public float Yaw { get { return yaw; } set { yaw = value; } }// (360 + value) % 360; } }
 
-        [SerializeField]
-        private float yaw;
-        public float Yaw { get { return yaw; } set { yaw = value; } }// (360 + value) % 360; } }
-
-        [SerializeField]
-        private float pitch;
-        public float Pitch { get { return pitch; } set { pitch = Mathf.Clamp(value, -MaxPitchRange, MaxPitchRange); } }
+        //[SerializeField]
+        //private float pitch;
+        //public float Pitch { get { return pitch; } set { pitch = Mathf.Clamp(value, -MaxPitchRange, MaxPitchRange); } }
     }
 
     public class InputContainer
@@ -67,6 +64,8 @@ public class SkaterController : MonoBehaviour
         public float ForwardLean { get; set; }
 
         public Vector2 ThrusterInput { get; set; }
+
+        public bool FreeRotate { get; set; }
     }
 
     #endregion
@@ -74,18 +73,22 @@ public class SkaterController : MonoBehaviour
     #region Fields
 
     public Vector3 SurfaceVelocityHack = new Vector3(0, 1, 0);
+    public float SurfaceVelocitySpeedHack = 3.0f;
 
+    // Debug tools
     public bool GroundedGravity = true;
     public bool GroundedSurface = true;
     public bool GroundedSteering = true;
     public bool GroundedThrusters = true;
 
+    // All the parameters so far
     public MovementInfo Movement;
     public RotationSettings Rotation;
     public GravitySettings Gravity;
     public InputContainer Input;
 
     public float RayCastLength;
+
 
     private Vector3 surfaceNormal = Vector3.zero;
     private Quaternion rotationTarget = Quaternion.identity;
@@ -127,28 +130,17 @@ public class SkaterController : MonoBehaviour
     {
         float dT = Time.fixedDeltaTime;
 
+        // If it doesnt have a surfacenormal, try to find one
+        // Is this only when airborn? (I think so)
         if(surfaceNormal == Vector3.zero)
-            surfaceNormal = GetSurfaceNormal();
+            surfaceNormal = GetSurfaceNormal();            
 
-        // TEMP TEST HACKS
-        //surfaceNormal = new Vector3(0, 1, 1).normalized;
-
-        //if (surfaceNormal != Vector3.zero)
-        //{
-        //    grounded = true;
-        //}
-        ////    grounded = false;
-        ////    Debug.Log("False test");
-        ////}
-        ////else
-            
 
         if (grounded)
         {
             rb.centerOfMass = Vector3.zero;
             GroundedRotation(dT);
             GroundedVelocity(dT);
-            
         }
         else // Airborn
         {
@@ -158,6 +150,7 @@ public class SkaterController : MonoBehaviour
             AirbornVelocity(dT);
         }
 
+        // Update the rotation
         RotateTowardsTarget(dT);
 
         // Reset (maybe change this to after two frames)
@@ -165,11 +158,11 @@ public class SkaterController : MonoBehaviour
         surfaceNormal = Vector3.zero;
     }
 
-    //private Vector3 GetGroundedSurfaceNormal()
-    //{
-    //    return 
-    //}
+    #endregion
 
+    #region GetSurfaceNormal
+
+    // This is shit - redo it
     private Vector3 GetSurfaceNormal()
     {
         Vector3[] dirs = new Vector3[4];
@@ -208,70 +201,112 @@ public class SkaterController : MonoBehaviour
 
     private void AirbornRotation(float dT)
     {
-        UpdateRotationV1(dT);
+        //UpdateRotationV1(dT);
     }
 
     private void GroundedRotation(float dT)
     {
-        //if(surfaceNormal == Vector3.zero)
-        //    UpdateRotationV1(dT);
-        //else
-            UpdateGroundedRotation(dT);
+        UpdateGroundedRotation(dT);
     }
 
     #region V1
 
-    private void UpdateRotationV1(float deltaTime)
-    {
-        UpdateYawAndPitch(deltaTime);
+    //private void UpdateRotationV1(float deltaTime)
+    //{
+    //    UpdateYawAndPitch(deltaTime);
 
-        // Calculate the rotation in quaternions
-        targetRotation = Quaternion.AngleAxis(Rotation.Yaw, Vector3.up);
+    //    // Calculate the rotation in quaternions
+    //    targetRotation = Quaternion.AngleAxis(Rotation.Yaw, Vector3.up);
 
-        Vector3 right = targetRotation * Vector3.right;
-        targetRotation = Quaternion.AngleAxis(Rotation.Pitch, right) * targetRotation;
+    //    Vector3 right = targetRotation * Vector3.right;
+    //    targetRotation = Quaternion.AngleAxis(Rotation.Pitch, right) * targetRotation;
 
-        rotationTarget = (targetRotation);
-    }
+    //    rotationTarget = (targetRotation);
+    //}
 
-    private void UpdateYawAndPitch(float deltaTime)
-    {
-        // Calculate the yaw + pitch additions
-        float yaw = deltaTime * Input.Steer * Rotation.YawDegPerSec;
-        float pitch = deltaTime * -Input.ForwardLean * Rotation.PitchDegPerSec;
+    //private void UpdateYawAndPitch(float deltaTime)
+    //{
+    //    // Calculate the yaw + pitch additions
+    //    float yaw = deltaTime * Input.Steer * Rotation.YawDegPerSec;
+    //    float pitch = deltaTime * -Input.ForwardLean * Rotation.PitchDegPerSec;
 
-        // Add degrees to new rotation
-        Rotation.Yaw += yaw;
-        Rotation.Pitch += pitch;
-    }
+    //    // Add degrees to new rotation
+    //    Rotation.Yaw += yaw;
+    //    Rotation.Pitch += pitch;
+    //}
 
     #endregion
 
     private void UpdateGroundedRotation(float dT)
     {
-        // 1. Find and rotate towards up and forward vector
-        // 2. Add a small delay to reach the target up and forward
-        // 3. Solve correction from jumps:
-        //      a. to fall or rotate up again
-        // 4. When landing do COG/foot swing corrections
+        // Two modes:
+        // - Lean rotation 
+        //      Rotation is based on the lean angle and the corresponding turnradius 
+        //      Always carves perfectly in the direction of the turnradius
+        // - Free rotation (drift initiate button)
+        //
+        //  Free rotation also when standing fairly still (below a certain velocity?)
+        //
+        //  TODO:
+        //      (V) Angle in relation to surface
+        //      (X) Rotate to new forward direction after steering
+        //      (X) Free rotation yaw
+        //      (X) Solve the drift cases
+        //
+        // Solving the drift case:
+        //  Ideally you have sweetspots for carving in the analog stick
+        //  and when pushing to the extreme it will overcarve/drift 
+        //  Could be parameterized so that novice players need less to worry
+        //  about losing a lot of friction when overcarving etc.
+        //  Analog:     0 ... a  ... 0.5 ... b  ... 1 
+        //  Sweetspot:  0 ... >0 ... 1   ... >0 ... 0
+        //  Where a and b are the values that describe the start
+        //  and the end of the sweetspot range 
+        //  ~ Maybe make it curve driven?
+
+        
 
         // SurfaceNormal direction is the target up (not gravity)
-        Vector3 targetUp = surfaceNormal;
+        // Always rotate with the starting point being the surfaceNormal
+        Vector3 up = surfaceNormal;
         Vector3 forward;// 
         Vector3 side = tr.right;
 
-        #region Yaw
+        float vm = rb.velocity.magnitude;
 
-        //// Yaw for driftbutton - otherwise lean
-        float yawInput = dT * Input.Steer * Rotation.YawDegPerSec;
+        // Steering
 
-        //// Add rotation (Yaw) to target
-        Quaternion yaw = Quaternion.AngleAxis(yawInput, targetUp);
-        side = yaw * side;
+        // Yaw
+        if(Input.FreeRotate) // Free Rotate mode
+        {
+            side = FreeRotation(dT, up, side);
+
+            // calculate the new forward
+            forward = Vector3.Cross(side, up);
+        }
+        else // LeanMode
+        {
+            // Find the radius  
+            float r = Rotation.TurnRadiusTransition.Evaluate(Input.Steer) * Rotation.MaxTurnRadius;
+
+            // Carve acceleration
+            Vector3 centripetalAcceleration = side * (dT * vm * vm) / r;
+
+            // Maybe also do this from the side vector like freerotation?
+
+            // New forward
+            forward = (rb.velocity + centripetalAcceleration).normalized;
+        }
         
+        // Roll
+        up = Lean(dT, up, forward);
 
-        #endregion
+        // Set the rotation target
+        rotationTarget = Quaternion.LookRotation(forward, up);
+    }
 
+    private Vector3 Lean(float dT, Vector3 up, Vector3 forward)
+    {
         //// Add forward lean (Pitch) to target
         if (Rotation.LeanTransitionTime > 0)
         {
@@ -292,22 +327,27 @@ public class SkaterController : MonoBehaviour
             delayedLean = Input.Steer;
         }
 
-        //Debug.Log(delayedLean);
-
-        //Quaternion pitch = Quaternion.AngleAxis()
-
-        // Max 
-
-        forward = Vector3.Cross(side, targetUp);
-
         // Side lean (Roll)
         Quaternion roll = Quaternion.AngleAxis(90 * Rotation.MaxLean * -delayedLean, forward);
-        targetUp = roll * targetUp;
 
-        // Do rotation towards
-        //Debug.Log(string.Format("Forward {0} Up {1} {2}", forward, targetUp, tr.right));
-        rotationTarget = Quaternion.LookRotation(forward, targetUp);
+        return roll * up;
     }
+
+    private Vector3 FreeRotation(float dT, Vector3 up, Vector3 side)
+    {
+        //// Yaw for driftbutton - otherwise lean
+        float yawInput = dT * Input.Steer * Rotation.FreeRotationYawDegPerSec;
+
+        //// Add rotation (Yaw) to target
+        Quaternion yaw = Quaternion.AngleAxis(yawInput, up);
+        return yaw * side;
+    }
+
+    // 1. Find and rotate towards up and forward vector
+    // 2. Add a small delay to reach the target up and forward
+    // 3. Solve correction from jumps:
+    //      a. to fall or rotate up again
+    // 4. When landing do COG/foot swing corrections
 
     #endregion
 
@@ -392,7 +432,6 @@ public class SkaterController : MonoBehaviour
         // Find the current turn radius
         // min and max interpolate between
 
-        float radius = 1;
         // direction of centripetal foce (perp to velocity)
         //Vector3 r = Vector3.Cross()
         //Vector3 centripetal = (vm * vm) / radius;
@@ -400,8 +439,6 @@ public class SkaterController : MonoBehaviour
         #endregion
 
         //Debug.Log(string.Format("Grav: {0} theta {1} Surf: {2} theta {3} ", gravity, gravTheta, surface, surfTheta));
-
-        //Debug.Log(side);
 
         // Do rays
         Debug.DrawRay(rb.position, carveEdge, Color.red);
