@@ -76,9 +76,9 @@ public class SkaterController : MonoBehaviour
     public float SurfaceVelocitySpeedHack = 3.0f;
 
     // Debug tools
-    public bool GroundedGravity = true;
-    public bool GroundedSurface = true;
-    public bool GroundedSteering = true;
+    public bool CarvedGravityOn = true;
+    public bool SurfaceOn = true;
+    public bool SteeringOn = true;
     public bool GroundedThrusters = true;
 
     // All the parameters so far
@@ -135,27 +135,216 @@ public class SkaterController : MonoBehaviour
         if(surfaceNormal == Vector3.zero)
             surfaceNormal = GetSurfaceNormal();            
 
-
-        if (grounded)
-        {
-            rb.centerOfMass = Vector3.zero;
-            GroundedRotation(dT);
-            GroundedVelocity(dT);
-        }
-        else // Airborn
-        {
-            Debug.Log("Airborn");
-            rb.centerOfMass = origCoM;
-            //AirbornRotation(dT);
-            AirbornVelocity(dT);
-        }
+        // Does all the physics calculations
+        PhysicsStep(dT);
 
         // Update the rotation
         RotateTowardsTarget(dT);
 
+        // Cleanup after all the other operations
+        EndOfPhysicsUpdate();
+    }
+
+    private void EndOfPhysicsUpdate()
+    {
         // Reset (maybe change this to after two frames)
         grounded = false;
         surfaceNormal = Vector3.zero;
+    }
+
+    // Combining all the stuff into one
+    private void PhysicsStep(float dT)
+    {
+        #region Info on physics
+
+        // There are several physics elements working together: 
+        // 1. Gravity (along carve edge) *ground and air mode
+        // 2. Surface velocity (from the wave "generators" perpendicular to carve edge) *maybe later also for air elements
+        // 3. Steering (using centrepetal forces)
+        // 4. Thrusters:
+        //    a. Strafing (whilst moving along the parallel across the surface) 
+        //    b. Accel and breaking (along the velocity?)
+
+        #endregion
+
+        #region Shared vars
+
+        Vector3 up = surfaceNormal;
+        Vector3 forward;// 
+        Vector3 side = tr.right;
+
+        Vector3 centripetalAcceleration = Vector3.zero;
+        
+        Vector3 v = rb.velocity;
+        float vm = v.magnitude;
+
+        #endregion
+
+        #region Rotation and steering (centrepetal acceleration)
+
+        #region Comments and ideas
+
+        // Two modes:
+        // - Lean rotation 
+        //      Rotation is based on the lean angle and the corresponding turnradius 
+        //      Always carves perfectly in the direction of the turnradius
+        // - Free rotation (drift initiate button)
+        //
+        //  Free rotation also when standing fairly still (below a certain velocity?)
+        //
+        //  TODO:
+        //      (V) Angle in relation to surface
+        //      (X) Rotate to new forward direction after steering
+        //      (X) Free rotation yaw
+        //      (X) Solve the drift cases
+        //
+        // Solving the drift case:
+        //  Ideally you have sweetspots for carving in the analog stick
+        //  and when pushing to the extreme it will overcarve/drift 
+        //  Could be parameterized so that novice players need less to worry
+        //  about losing a lot of friction when overcarving etc.
+        //  Analog:     0 ... a  ... 0.5 ... b  ... 1 
+        //  Sweetspot:  0 ... >0 ... 1   ... >0 ... 0
+        //  Where a and b are the values that describe the start
+        //  and the end of the sweetspot range 
+        //  ~ Maybe make it curve driven?
+
+
+
+        // SurfaceNormal direction is the target up (not gravity)
+        // Always rotate with the starting point being the surfaceNormal
+
+        #endregion
+
+        // Free Rotate mode
+        if (false)//Input.FreeRotate || !grounded || vm == 0) // || Slow)
+        {
+            side = FreeRotation(dT, up, side);
+
+            // calculate the new forward
+            forward = Vector3.Cross(side, up);
+
+            Debug.Log(string.Format("FreeRotate v{0} grounded{1}",vm,grounded));
+        }
+        else // LeanMode
+        {
+            // Determine whether steering left or right (via input)
+            float dir = Input.Steer == 0 ? 0 : Mathf.Sign(Input.Steer); //(0 for no steering input and -1 and 1 for their respective directions)
+
+            // Find the radius  
+            float r = Rotation.TurnRadiusTransition.Evaluate(Input.Steer) * Rotation.MaxTurnRadius;
+
+            // Carve acceleration
+            centripetalAcceleration = r == 0 ? Vector3.zero : dir * side * (dT * vm * vm) / r;
+
+            // Maybe also do this from the side vector like freerotation?
+
+            // New forward
+            forward = (rb.velocity + centripetalAcceleration).normalized;
+
+            Debug.Log(string.Format("r:{0} ca:{1}", r, centripetalAcceleration));
+        }
+
+        // Roll
+        //up = Lean(dT, up, forward);
+
+        // Set the rotation target
+        rotationTarget = Quaternion.LookRotation(forward, up);
+
+        Debug.Log(string.Format("u:{0} s:{1} f:{2}", up, side, forward));
+
+        #endregion
+
+        #region Find the carveEdge
+        
+        // Find the normalised carve direction
+
+        // Handle edge case when perp (this would mean no carving in theory)
+        Vector3 carveEdge;
+
+        if (tr.up == surfaceNormal)
+        {
+            carveEdge = tr.forward;
+        }
+        else
+        {
+            // Cross product of the up vector of the feet (up of transform for now) and the surface normal
+            carveEdge = Vector3.Cross(tr.up.normalized, surfaceNormal).normalized;//tr.forward.normalized;
+        }
+
+        Vector3 carveSide = Vector3.Cross(carveEdge, surfaceNormal).normalized;
+
+        #endregion
+
+        #region 1. Gravity (carving)
+
+        #region Info
+
+        // The force or acceleration of gravity is greater when carving more in line with gravity
+        // Hence a dot projection is done between the angle of gravity and the carveEdge 
+        // theta = carve dot gravity normalized
+        // CarveEdge parallel to Gravity ~ theta == 1 && theta == 0 when carve and gravity are perpendicular 
+
+        // Maybe think about the whole friction thing (for example when standing still but not carving??)
+
+        //// The angle difference between the grav dir and the carve dir
+        //float gravTheta = Vector3.Dot(Gravity.Direction, carveEdge);
+
+        //// calculate the gravity component
+        //Vector3 gravity = gravTheta * Gravity.Magnitude * carveEdge; // (1 - theta) * magnitute * gravityDir along surface for slide??
+
+        // Add full gravity - remove the anisotropic friction direction (orthogonal to the carveEdge along the normal surface)
+
+        #endregion
+
+        Vector3 gravity = Gravity.Acceleration - carveSide * Vector3.Dot(carveSide, Gravity.Acceleration);
+
+        #endregion
+
+        #region 2. Surface (carving)
+
+        // Get the surface velocity (direction and speed)
+        Vector3 surfaceVelocity = SurfaceVelocityHack;
+
+        // Maybe change to a texture lookup based on current position
+
+        // Get the angle dot product between the carve edge and the surface velocity
+        float surfTheta = 1 - Math.Abs(Vector3.Dot(surfaceVelocity.normalized, carveEdge));
+
+        // calculate the surface component
+        Vector3 surface = surfTheta * surfaceVelocity;
+
+        #endregion
+
+        //Debug.Log(string.Format("Grav: {0} theta {1} Surf: {2} theta {3} ", gravity, gravTheta, surface, surfTheta));
+
+        #region Rays
+
+        // Do rays
+       // Debug.DrawRay(rb.position, carveEdge, Color.red);
+        Debug.DrawRay(rb.position, side, Color.red);
+        Debug.DrawRay(rb.position, up, Color.magenta);
+        Debug.DrawRay(rb.position, forward, Color.green);
+        Debug.DrawRay(rb.position, rb.velocity, Color.yellow);
+        //Debug.DrawRay(rb.position, surfaceNormal, Color.white);
+        //Debug.DrawRay(rb.position, tr.forward, Color.magenta);
+
+        #endregion
+
+        if (CarvedGravityOn)
+            rb.velocity += dT * gravity;
+
+        if (SurfaceOn)
+            rb.velocity += dT * surface;
+
+        if (SteeringOn)
+            rb.velocity += centripetalAcceleration;
+
+        // Max
+        if (rb.velocity.magnitude > Movement.MaxSpeed)
+        {
+            rb.velocity = rb.velocity.normalized * Movement.MaxSpeed;
+        }
     }
 
     #endregion
@@ -199,17 +388,7 @@ public class SkaterController : MonoBehaviour
         rb.MoveRotation(Quaternion.Lerp(rb.rotation, rotationTarget, 0.6f));
     }
 
-    private void AirbornRotation(float dT)
-    {
-        //UpdateRotationV1(dT);
-    }
-
-    private void GroundedRotation(float dT)
-    {
-        UpdateGroundedRotation(dT);
-    }
-
-    #region V1
+    #region Ref for airborn mode
 
     //private void UpdateRotationV1(float deltaTime)
     //{
@@ -236,74 +415,6 @@ public class SkaterController : MonoBehaviour
     //}
 
     #endregion
-
-    private void UpdateGroundedRotation(float dT)
-    {
-        // Two modes:
-        // - Lean rotation 
-        //      Rotation is based on the lean angle and the corresponding turnradius 
-        //      Always carves perfectly in the direction of the turnradius
-        // - Free rotation (drift initiate button)
-        //
-        //  Free rotation also when standing fairly still (below a certain velocity?)
-        //
-        //  TODO:
-        //      (V) Angle in relation to surface
-        //      (X) Rotate to new forward direction after steering
-        //      (X) Free rotation yaw
-        //      (X) Solve the drift cases
-        //
-        // Solving the drift case:
-        //  Ideally you have sweetspots for carving in the analog stick
-        //  and when pushing to the extreme it will overcarve/drift 
-        //  Could be parameterized so that novice players need less to worry
-        //  about losing a lot of friction when overcarving etc.
-        //  Analog:     0 ... a  ... 0.5 ... b  ... 1 
-        //  Sweetspot:  0 ... >0 ... 1   ... >0 ... 0
-        //  Where a and b are the values that describe the start
-        //  and the end of the sweetspot range 
-        //  ~ Maybe make it curve driven?
-
-        
-
-        // SurfaceNormal direction is the target up (not gravity)
-        // Always rotate with the starting point being the surfaceNormal
-        Vector3 up = surfaceNormal;
-        Vector3 forward;// 
-        Vector3 side = tr.right;
-
-        float vm = rb.velocity.magnitude;
-
-        // Steering
-
-        // Yaw
-        if(Input.FreeRotate) // Free Rotate mode
-        {
-            side = FreeRotation(dT, up, side);
-
-            // calculate the new forward
-            forward = Vector3.Cross(side, up);
-        }
-        else // LeanMode
-        {
-            // Find the radius  
-            float r = Rotation.TurnRadiusTransition.Evaluate(Input.Steer) * Rotation.MaxTurnRadius;
-
-            // Carve acceleration
-            Vector3 centripetalAcceleration = side * (dT * vm * vm) / r;
-
-            // Maybe also do this from the side vector like freerotation?
-
-            // New forward
-            forward = (rb.velocity + centripetalAcceleration).normalized;
-        }
-        
-        // Roll
-        up = Lean(dT, up, forward);
-
-        // Set the rotation target
-        rotationTarget = Quaternion.LookRotation(forward, up);
-    }
 
     private Vector3 Lean(float dT, Vector3 up, Vector3 forward)
     {
@@ -348,126 +459,6 @@ public class SkaterController : MonoBehaviour
     // 3. Solve correction from jumps:
     //      a. to fall or rotate up again
     // 4. When landing do COG/foot swing corrections
-
-    #endregion
-
-    #region Velocity
-
-    
-
-    private void GroundedVelocity(float dT)
-    {
-        // Grounded has several physics elements working together: 
-        // 1. Gravity (along carve edge)
-        // 2. Surface velocity (from the wave "generators" perpendicular to carve edge)
-        // 3. Steering (using centrepetal forces)
-        // 4. Thrusters:
-        //    a. Strafing (whilst moving along the parallel across the surface) 
-        //    b. Accel and breaking (along the velocity?)
-
-        #region Shared values (carve edge, surface normal, etc.)
-
-        // velocity
-        Vector3 v = GetComponent<Rigidbody>().velocity;
-        float vm = v.magnitude;
-
-        // Find the normalised carve direction
-
-        // Handle edge case when perp (this would mean no carving in theory)
-        Vector3 carveEdge;
-
-        if(tr.up == surfaceNormal)
-        {
-            carveEdge = tr.forward;
-        }
-        else 
-        {
-            // Cross product of the up vector of the feet (up of transform for now) and the surface normal
-            carveEdge = Vector3.Cross(tr.up.normalized, surfaceNormal).normalized;//tr.forward.normalized;
-        }
-
-        Vector3 side = Vector3.Cross(carveEdge, surfaceNormal).normalized;
- 
-        #endregion
-
-        #region 1. Gravity (carving)
-
-        // The force or acceleration of gravity is greater when carving more in line with gravity
-        // Hence a dot projection is done between the angle of gravity and the carveEdge 
-        // theta = carve dot gravity normalized
-        // CarveEdge parallel to Gravity ~ theta == 1 && theta == 0 when carve and gravity are perpendicular 
-
-        // Maybe think about the whole friction thing (for example when standing still but not carving??)
-
-        //// The angle difference between the grav dir and the carve dir
-        //float gravTheta = Vector3.Dot(Gravity.Direction, carveEdge);
-
-        //// calculate the gravity component
-        //Vector3 gravity = gravTheta * Gravity.Magnitude * carveEdge; // (1 - theta) * magnitute * gravityDir along surface for slide??
-
-        // Add full gravity - remove the anisotropic friction direction (orthogonal to the carveEdge along the normal surface)
-        Vector3 gravity = Gravity.Acceleration - side * Vector3.Dot(side, Gravity.Acceleration);
-
-        #endregion
-
-        #region 2. Surface (carving)
-
-        // Get the surface velocity (direction and speed)
-        Vector3 surfaceVelocity = SurfaceVelocityHack;
-
-        // Maybe change to a texture lookup based on current position
-        
-        // Get the angle dot product between the carve edge and the surface velocity
-        float surfTheta = 1 - Math.Abs(Vector3.Dot(surfaceVelocity.normalized, carveEdge));
-
-        // calculate the surface component
-        Vector3 surface = surfTheta * surfaceVelocity;
-
-        #endregion
-
-        #region 3. Steering (using centripetal forces)
-
-        // Determine whether steering left or right (via input)
-
-        // Find the current turn radius
-        // min and max interpolate between
-
-        // direction of centripetal foce (perp to velocity)
-        //Vector3 r = Vector3.Cross()
-        //Vector3 centripetal = (vm * vm) / radius;
-
-        #endregion
-
-        //Debug.Log(string.Format("Grav: {0} theta {1} Surf: {2} theta {3} ", gravity, gravTheta, surface, surfTheta));
-
-        // Do rays
-        Debug.DrawRay(rb.position, carveEdge, Color.red);
-        Debug.DrawRay(rb.position, side, Color.red);
-        Debug.DrawRay(rb.position, gravity, Color.blue);
-        Debug.DrawRay(rb.position, surface, Color.green);
-        Debug.DrawRay(rb.position, rb.velocity, Color.yellow);
-        //Debug.DrawRay(rb.position, surfaceNormal, Color.white);
-        //Debug.DrawRay(rb.position, tr.forward, Color.magenta);
-
-        if (GroundedGravity)
-            rb.velocity += dT * gravity;
-
-        if(GroundedSurface)
-            rb.velocity += dT * surface;
-
-        // Max
-        if (rb.velocity.magnitude > Movement.MaxSpeed)
-        {
-            rb.velocity = rb.velocity.normalized * Movement.MaxSpeed;
-        }
-            
-    }
-
-
-    private void AirbornVelocity(float dT)
-    {
-        rb.velocity += dT * Gravity.Acceleration;
-    }
 
     #endregion
 
