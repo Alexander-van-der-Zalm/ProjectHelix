@@ -30,6 +30,7 @@ public class SkaterController : MonoBehaviour
     public class RotationSettings
     {
         //public float MinTurnRadius;
+        public float MinTurnRadius;
         public float MaxTurnRadius;
         public AnimationCurve TurnRadiusTransition;
 
@@ -41,6 +42,7 @@ public class SkaterController : MonoBehaviour
         // For rotation button
         public float FreeRotationYawDegPerSec = 360.0f;
         public float PitchDegPerSec = 270.0f;
+        
 
         //[SerializeField]
         //private float yaw;
@@ -89,7 +91,6 @@ public class SkaterController : MonoBehaviour
 
     public float RayCastLength;
 
-
     private Vector3 surfaceNormal = Vector3.zero;
     private Quaternion rotationTarget = Quaternion.identity;
 
@@ -118,7 +119,8 @@ public class SkaterController : MonoBehaviour
 
         origCoM = rb.centerOfMass;
 
-        //rb.velocity = tr.forward * 10;
+        surfaceNormal = Vector3.up;
+        rb.velocity = tr.forward * 10;
 	}
 
     #endregion
@@ -149,7 +151,9 @@ public class SkaterController : MonoBehaviour
     {
         // Reset (maybe change this to after two frames)
         grounded = false;
-        surfaceNormal = Vector3.zero;
+        
+        // for now ignore surface normal resets
+        //surfaceNormal = Vector3.zero;
     }
 
     // Combining all the stuff into one
@@ -217,7 +221,7 @@ public class SkaterController : MonoBehaviour
         #endregion
 
         // Free Rotate mode
-        if (false)//Input.FreeRotate || !grounded || vm == 0) // || Slow)
+        if (Input.FreeRotate || vm == 0) //|| !grounded
         {
             side = FreeRotation(dT, up, side);
 
@@ -232,17 +236,21 @@ public class SkaterController : MonoBehaviour
             float dir = Input.Steer == 0 ? 0 : Mathf.Sign(Input.Steer); //(0 for no steering input and -1 and 1 for their respective directions)
 
             // Find the radius  
-            float r = Rotation.TurnRadiusTransition.Evaluate(Input.Steer) * Rotation.MaxTurnRadius;
+            float rInput = Rotation.TurnRadiusTransition.Evaluate(Mathf.Abs(Input.Steer));
+            float r = rInput == 0 ? 0 : radiusInterpolate(vm, Rotation.MinTurnRadius, rInput);
 
-            // Carve acceleration
-            centripetalAcceleration = r == 0 ? Vector3.zero : dir * side * (dT * vm * vm) / r;
+            // Carve acceleration (zero when the radius is also zero)
+            centripetalAcceleration = r == 0 ? Vector3.zero : 
+                                      dir * side * (dT * vm * vm) / r;
+
+            // Work in drift to carve solution
 
             // Maybe also do this from the side vector like freerotation?
-
+            
             // New forward
             forward = (rb.velocity + centripetalAcceleration).normalized;
 
-            Debug.Log(string.Format("r:{0} ca:{1}", r, centripetalAcceleration));
+            Debug.Log(string.Format("r:{0} in:{2} rIn:{3} ca:{1}", r, centripetalAcceleration, Input.Steer, rInput));
         }
 
         // Roll
@@ -251,7 +259,7 @@ public class SkaterController : MonoBehaviour
         // Set the rotation target
         rotationTarget = Quaternion.LookRotation(forward, up);
 
-        Debug.Log(string.Format("u:{0} s:{1} f:{2}", up, side, forward));
+        //Debug.Log(string.Format("u:{0} s:{1} f:{2}", up, side, forward));
 
         #endregion
 
@@ -333,6 +341,8 @@ public class SkaterController : MonoBehaviour
 
         if (CarvedGravityOn)
             rb.velocity += dT * gravity;
+        else
+            rb.velocity += dT * Gravity.Acceleration;
 
         if (SurfaceOn)
             rb.velocity += dT * surface;
@@ -345,6 +355,14 @@ public class SkaterController : MonoBehaviour
         {
             rb.velocity = rb.velocity.normalized * Movement.MaxSpeed;
         }
+    }
+
+    private float radiusInterpolate(float vm, float max, float t)
+    {
+        float aMax = (360 * vm) / (2 * Mathf.PI * max);
+        float aCur = aMax * t;
+        return (360 * vm ) / (2 * Mathf.PI * aCur);
+        //return to + (1 - t) * (from - to);
     }
 
     #endregion

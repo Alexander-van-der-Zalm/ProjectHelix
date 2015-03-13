@@ -136,30 +136,37 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   SurfaceVelocityHack: {x: 0, y: 1, z: -1}
-  GroundedGravity: 1
-  GroundedSurface: 0
-  GroundedSteering: 1
-  GroundedThrusters: 1
+  SurfaceVelocitySpeedHack: 3
+  CarvedGravityOn: 0
+  SurfaceOn: 0
+  SteeringOn: 1
+  GroundedThrusters: 0
   Movement:
     MaxSpeed: 3
-    AccelerationPerSecond: 0
   Rotation:
-    MinTurnRadius: 0
-    MaxTurnRadius: 0
+    MinTurnRadius: 2
+    MaxTurnRadius: 10
     TurnRadiusTransition:
       serializedVersion: 2
-      m_Curve: []
+      m_Curve:
+      - time: 0
+        value: 0
+        inSlope: 1
+        outSlope: 1
+        tangentMode: 10
+      - time: 1
+        value: 1
+        inSlope: 1
+        outSlope: 1
+        tangentMode: 10
       m_PreInfinity: 2
       m_PostInfinity: 2
     MaxLean: .649999976
     LeanTransitionTime: .200000003
-    YawDegPerSec: 360
+    FreeRotationYawDegPerSec: 360
     PitchDegPerSec: 360
-    MaxPitchRange: 90
-    yaw: 0
-    pitch: 0
   Gravity:
-    Magnitude: 3
+    Magnitude: 0
     direction: {x: 0, y: -1, z: 0}
   RayCastLength: 0
 --- !u!136 &13661786
